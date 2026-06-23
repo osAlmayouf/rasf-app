@@ -58,7 +58,7 @@ function SortToggle({ active, dir, label, onClick }) {
 }
 
 export default function ProjectsTable({ extraProjects = [] }) {
-  const { t, setPage, setSelectedProjectId, portfolioService } = useApp();
+  const { t, setPage, setSelectedProjectId, setOuterProjectTab, portfolioService } = useApp();
   const [sortKey, setSortKey] = useState('opportunityDate');
   const [sortDir, setSortDir] = useState('asc');
 
@@ -205,7 +205,7 @@ export default function ProjectsTable({ extraProjects = [] }) {
 
                 <td className="px-6 py-4">
                   <button
-                    onClick={() => { setSelectedProjectId(p.id); setPage('project'); }}
+                    onClick={() => { setSelectedProjectId(p.id); setOuterProjectTab('active'); setPage('project'); }}
                     style={{
                       background: 'transparent', border: '1px solid var(--border-mid)', color: 'var(--text-muted)',
                       borderRadius: 6, padding: '4px 12px', fontSize: 11, fontWeight: 600,

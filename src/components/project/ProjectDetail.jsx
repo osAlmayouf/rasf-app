@@ -5,7 +5,6 @@ import { stripUnit } from '../../utils/fmtMode';
 import Tag            from '../common/Tag';
 import { X, ArrowUp, Archive } from 'lucide-react';
 import SARNum         from '../common/SARNum';
-import PipelinePage   from '../pipeline/PipelinePage';
 import ProjectBoard   from './tabs/ProjectBoard';
 import FinancialAnalysis from './tabs/FinancialAnalysis';
 import ProjectComponents from './tabs/ProjectComponents';
@@ -49,7 +48,8 @@ export default function ProjectDetail() {
   const [editName, setEditName]               = useState('');
   const [editLocation, setEditLocation]       = useState('');
   const [editType, setEditType]               = useState('');
-  const allProjects = portfolioService.getAllProjects();
+  const allProjects      = portfolioService.getAllProjects();
+  const pipelineProjects = portfolioService.getPipelineProjects();
   const project = portfolioService.getProject(selectedProjectId ?? allProjects[0]?.id);
 
   // Selector shows only projects in the same status group as the current project
@@ -134,6 +134,17 @@ export default function ProjectDetail() {
     { key: 'pipeline', label: t('nPipelineDash')  },
   ];
 
+  const handleOuterTabSwitch = (key) => {
+    if (key === 'pipeline' && !isPipeline) {
+      const first = pipelineProjects[0];
+      if (first) setSelectedProjectId(first.id);
+    } else if (key === 'active' && isPipeline) {
+      const activeList = allProjects.filter(p => p.status !== 'pipeline' && p.status !== 'archived');
+      if (activeList.length > 0) setSelectedProjectId(activeList[0].id);
+    }
+    setOuterTab(key);
+  };
+
   return (
     <div>
       {/* Outer tab switcher */}
@@ -147,7 +158,7 @@ export default function ProjectDetail() {
         {OUTER_TABS.map(tab => (
           <button
             key={tab.key}
-            onClick={() => setOuterTab(tab.key)}
+            onClick={() => handleOuterTabSwitch(tab.key)}
             style={{
               padding: '6px 20px', borderRadius: 7, fontSize: 13, fontWeight: 600,
               border: 'none', cursor: 'pointer', transition: 'all .18s',
@@ -160,11 +171,8 @@ export default function ProjectDetail() {
         ))}
       </div>
 
-      {/* Pipeline tab */}
-      {outerTab === 'pipeline' && <PipelinePage />}
-
-      {/* Active projects tab */}
-      {outerTab === 'active' && <>
+      {/* Project detail — selector and content adapt to active/pipeline tab */}
+      <>
 
       {/* Pipeline action confirm modal */}
       {confirmAction && (
@@ -467,7 +475,7 @@ export default function ProjectDetail() {
       {/* Active Tab Content */}
       {ActiveComponent && <ActiveComponent project={project} />}
       </>}
-      </>}
+      </>
     </div>
   );
 }

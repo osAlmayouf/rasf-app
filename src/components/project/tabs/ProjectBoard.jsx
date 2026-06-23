@@ -5,6 +5,8 @@ import ProjectNotes from './ProjectNotes';
 import { Ruler, BarChart2, Building2, SquareParking, Home, Check } from 'lucide-react';
 
 const PHASE_KEYS = ['ph1', 'ph2', 'ph3', 'ph4', 'ph5'];
+const STUDY_PHASE_KEYS = ['sp1', 'sp2', 'sp3', 'sp4'];
+const DEFAULT_STUDY_PHASES = STUDY_PHASE_KEYS.map(key => ({ key, progress: 0 }));
 
 // أوزان البنود لكل نوع مشروع (ph1…ph5)
 const TYPE_WEIGHTS = {
@@ -40,7 +42,9 @@ const STATE_STYLES = {
 export default function ProjectBoard({ project }) {
   const { t, lang, portfolioService, refreshPortfolio } = useApp();
 
-  const isAr = lang === 'ar';
+  const isAr       = lang === 'ar';
+  const isPipeline = project.status === 'pipeline';
+
   const statusLabel = { done: isAr ? 'مكتمل' : 'Done', pending: isAr ? 'لم يبدأ' : 'Not started' };
 
   const [phasePcts, setPhasePcts] = useState(
@@ -60,20 +64,16 @@ export default function ProjectBoard({ project }) {
   };
 
   const handleSave = () => {
-    // تحديث نسب المراحل في بيانات المشروع
     const updatedPhases = project.phases.map(p => ({
       ...p,
       progress: phasePcts[p.key] ?? p.progress,
     }));
-    // إعادة حساب نسبة الإنجاز الإجمالية بالأوزان المناسبة لنوع المشروع
     const newProgress = calcWeightedProgress(project.type, phasePcts);
-    portfolioService.updateProject(project.id, {
-      phases:   updatedPhases,
-      progress: newProgress,
-    });
+    portfolioService.updateProject(project.id, { phases: updatedPhases, progress: newProgress });
     refreshPortfolio();
     setDirty(false);
   };
+
 
   const hasBasement = project.belowGradeGBA && project.belowGradeGBA !== '—';
 
@@ -102,110 +102,89 @@ export default function ProjectBoard({ project }) {
         ))}
       </div>
 
-      <div className="grid gap-4" style={{ gridTemplateColumns: '3fr 1.4fr' }}>
-        {/* Timeline */}
-        <GlassCard>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <div className="section-hd mb-0.5">{t('bdTlT')}</div>
-              {t('bdTlS') && <div className="section-sub">{t('bdTlS')}</div>}
-            </div>
-            {dirty && (
-              <button
-                onClick={handleSave}
-                className="text-xs font-bold px-4 py-1.5 rounded-lg"
-                style={{ background: 'var(--rasf-primary-dim)', border: '1px solid var(--rasf-primary)', color: 'var(--rasf-primary)' }}
-              >
-                {isAr ? 'حفظ التغييرات' : 'Save Changes'}
-              </button>
-            )}
-          </div>
-
-          <div className="space-y-0">
-            {project.phases.map((phase, i) => {
-              const pct    = phasePcts[phase.key] ?? phase.progress;
-              const state  = phaseState(pct);
-              const s      = STATE_STYLES[state];
-              const isLast = i === project.phases.length - 1;
-
-              return (
-                <div key={phase.key} className="flex gap-4">
-                  {/* dot + connector */}
-                  <div className="flex flex-col items-center" style={{ width: 32, flexShrink: 0 }}>
-                    <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                      style={{ background: s.dotBg, border: `1.5px solid ${s.dotBorder}`, color: s.dot }}
-                    >
-                      {state === 'done' ? <Check size={14} /> : `0${i + 1}`}
-                    </div>
-                    {!isLast && (
-                      <div style={{ width: 1, flex: 1, minHeight: 12, background: state === 'done' ? 'rgba(16,185,129,0.2)' : 'var(--glass-line)', margin: '3px 0' }} />
-                    )}
-                  </div>
-
-                  {/* content */}
-                  <div className={`flex-1 ${isLast ? 'pb-0' : 'pb-4'}`}>
-                    <div className="flex justify-between items-center mb-1.5">
-                      <span className="text-sm font-semibold" style={{ color: s.label }}>
-                        {t(PHASE_KEYS[i])}
-                      </span>
-
-                      {/* Editable percentage — all phases */}
-                      <div className="flex items-center gap-1 flex-shrink-0 ms-2">
-                        <input
-                          type="number"
-                          min={0}
-                          max={100}
-                          value={pct}
-                          onChange={e => handlePctChange(phase.key, e.target.value)}
-                          style={{
-                            width: 48,
-                            background: 'var(--rasf-primary-dim)',
-                            border: `1px solid ${s.dotBorder}`,
-                            borderRadius: 6,
-                            color: s.badgeText,
-                            fontSize: 12,
-                            fontWeight: 600,
-                            textAlign: 'center',
-                            padding: '2px 4px',
-                            outline: 'none',
-                            fontFamily: 'inherit',
-                          }}
-                        />
-                        <span style={{ color: s.badgeText, fontSize: 12, fontWeight: 600 }}>%</span>
-                      </div>
-                    </div>
-
-                    {phase.start && phase.end && (
-                      <div className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>
-                        {phase.start} — {phase.end}
-                      </div>
-                    )}
-
-                    {pct > 0 && (
-                      <div style={{ height: 4, background: 'var(--glass-line)', borderRadius: 3, overflow: 'hidden' }}>
-                        <div
-                          style={{
-                            height: '100%', borderRadius: 3,
-                            width: `${pct}%`,
-                            background: state === 'done'
-                              ? 'linear-gradient(90deg,#10b981,#34d399)'
-                              : 'linear-gradient(90deg, var(--rasf-primary), var(--text-hi))',
-                            transition: 'width .4s ease',
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </GlassCard>
-
-        {/* Notes */}
+      {isPipeline ? (
+        /* Pipeline: notes full width, no phases panel */
         <ProjectNotes project={project} />
-      </div>
+      ) : (
+        /* Active: construction phases + notes side by side */
+        <div className="grid gap-4" style={{ gridTemplateColumns: '3fr 1.4fr' }}>
+          <GlassCard>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <div className="section-hd mb-0.5">{t('bdTlT')}</div>
+                {t('bdTlS') && <div className="section-sub">{t('bdTlS')}</div>}
+              </div>
+              {dirty && (
+                <button
+                  onClick={handleSave}
+                  className="text-xs font-bold px-4 py-1.5 rounded-lg"
+                  style={{ background: 'var(--rasf-primary-dim)', border: '1px solid var(--rasf-primary)', color: 'var(--rasf-primary)' }}
+                >
+                  {isAr ? 'حفظ التغييرات' : 'Save Changes'}
+                </button>
+              )}
+            </div>
+            <div className="space-y-0">
+              {project.phases.map((phase, i) => {
+                const pct    = phasePcts[phase.key] ?? phase.progress;
+                const state  = phaseState(pct);
+                const s      = STATE_STYLES[state];
+                const isLast = i === project.phases.length - 1;
+                return (
+                  <div key={phase.key} className="flex gap-4">
+                    <div className="flex flex-col items-center" style={{ width: 32, flexShrink: 0 }}>
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                        style={{ background: s.dotBg, border: `1.5px solid ${s.dotBorder}`, color: s.dot }}
+                      >
+                        {state === 'done' ? <Check size={14} /> : `0${i + 1}`}
+                      </div>
+                      {!isLast && (
+                        <div style={{ width: 1, flex: 1, minHeight: 12, background: state === 'done' ? 'rgba(16,185,129,0.2)' : 'var(--glass-line)', margin: '3px 0' }} />
+                      )}
+                    </div>
+                    <div className={`flex-1 ${isLast ? 'pb-0' : 'pb-4'}`}>
+                      <div className="flex justify-between items-center mb-1.5">
+                        <span className="text-sm font-semibold" style={{ color: s.label }}>
+                          {t(PHASE_KEYS[i])}
+                        </span>
+                        <div className="flex items-center gap-1 flex-shrink-0 ms-2">
+                          <input
+                            type="number" min={0} max={100} value={pct}
+                            onChange={e => handlePctChange(phase.key, e.target.value)}
+                            style={{
+                              width: 48, background: 'var(--rasf-primary-dim)',
+                              border: `1px solid ${s.dotBorder}`, borderRadius: 6,
+                              color: s.badgeText, fontSize: 12, fontWeight: 600,
+                              textAlign: 'center', padding: '2px 4px', outline: 'none', fontFamily: 'inherit',
+                            }}
+                          />
+                          <span style={{ color: s.badgeText, fontSize: 12, fontWeight: 600 }}>%</span>
+                        </div>
+                      </div>
+                      {phase.start && phase.end && (
+                        <div className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>
+                          {phase.start} — {phase.end}
+                        </div>
+                      )}
+                      {pct > 0 && (
+                        <div style={{ height: 4, background: 'var(--glass-line)', borderRadius: 3, overflow: 'hidden' }}>
+                          <div style={{
+                            height: '100%', borderRadius: 3, width: `${pct}%`,
+                            background: state === 'done' ? 'linear-gradient(90deg,#10b981,#34d399)' : 'linear-gradient(90deg, var(--rasf-primary), var(--text-hi))',
+                            transition: 'width .4s ease',
+                          }} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </GlassCard>
+          <ProjectNotes project={project} />
+        </div>
+      )}
     </div>
   );
 }

@@ -43,7 +43,7 @@ function SortToggle({ active, dir, label, onClick }) {
 }
 
 export default function PipelinePage() {
-  const { t, lang, portfolioService, refreshPortfolio, setPage, setSelectedProjectId, displayMode } = useApp();
+  const { t, lang, portfolioService, refreshPortfolio, setPage, setSelectedProjectId, setOuterProjectTab, displayMode } = useApp();
   const [confirm, setConfirm]           = useState(null);
   const [showArchived, setShowArchived] = useState(false);
   const [showNewModal, setShowNewModal] = useState(false);
@@ -66,7 +66,7 @@ export default function PipelinePage() {
     else { setSortKey(key); setSortDir('asc'); }
   }
 
-  const openDetail = (id) => { setSelectedProjectId(id); setPage('project'); };
+  const openDetail = (id) => { setSelectedProjectId(id); setOuterProjectTab('pipeline'); setPage('project'); };
 
   const handleConfirm = () => {
     if (!confirm) return;

@@ -4,16 +4,15 @@ import { ProjectStatus } from '../../models/Project';
 import GlassCard from '../common/GlassCard';
 import { Check, X, Circle } from 'lucide-react';
 
-const PHASE_KEYS = ['lc1', 'lc2', 'lc3', 'lc4', 'lc5'];
-const TOTAL = PHASE_KEYS.length;
+const ACTIVE_PHASES = ['lc1', 'lc2', 'lc3', 'lc4', 'lc5'];
+const STUDY_PHASES  = ['sp1', 'sp2', 'sp3', 'sp4'];
 
-// Derive the number of completed phases from the project's status
 function defaultCompleted(status) {
   switch (status) {
     case ProjectStatus.PLANNING:  return 1;
     case ProjectStatus.FINANCING: return 2;
     case ProjectStatus.ACTIVE:    return 3;
-    case ProjectStatus.COMPLETED: return TOTAL;
+    case ProjectStatus.COMPLETED: return ACTIVE_PHASES.length;
     default:                      return 0;
   }
 }
@@ -39,10 +38,11 @@ function saveCompleted(projectId, value) {
 export default function ProjectLifecycle({ projectId, status }) {
   const { t } = useApp();
 
-  // Initialise once: prefer saved value, fall back to status-derived default
-  const [completed, setCompleted] = useState(() => loadCompleted(projectId, status));
+  const isPipeline  = status === 'pipeline' || status === ProjectStatus.PIPELINE;
+  const PHASE_KEYS  = isPipeline ? STUDY_PHASES : ACTIVE_PHASES;
+  const TOTAL       = PHASE_KEYS.length;
 
-  // Index of the phase showing confirmation buttons (null = none)
+  const [completed, setCompleted] = useState(() => loadCompleted(projectId, status));
   const [pendingIdx, setPendingIdx] = useState(null);
 
   const phaseState = (i) => {
@@ -69,8 +69,8 @@ export default function ProjectLifecycle({ projectId, status }) {
     <GlassCard className="mb-6">
       <div className="flex justify-between items-center mb-3">
         <div>
-          <div className="section-hd">{t('dLcT')}</div>
-          <div className="section-sub">{t('dLcS')}</div>
+          <div className="section-hd">{t(isPipeline ? 'bdStudyT' : 'dLcT')}</div>
+          <div className="section-sub">{t(isPipeline ? 'bdStudyS' : 'dLcS')}</div>
         </div>
       </div>
 
@@ -90,10 +90,10 @@ export default function ProjectLifecycle({ projectId, status }) {
                 onClick={() => { if (!isPending) handleClick(i); }}
               >
                 <div className="text-xs mb-1" style={{ color: isDone ? '#10b981' : isActive ? 'var(--rasf-primary)' : 'var(--text-faint)' }}>
-                  {t(`${ph}ph`)}
+                  {t(`lc${i + 1}ph`)}
                 </div>
                 <div className="font-semibold text-sm" style={{ color: isDone ? '#10b981' : isActive ? 'var(--rasf-primary)' : 'var(--text-muted)' }}>
-                  {t(`${ph}n`)}
+                  {isPipeline ? t(ph) : t(`${ph}n`)}
                 </div>
 
                 <div className="mt-2 text-xs">

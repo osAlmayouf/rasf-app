@@ -785,6 +785,12 @@ export const PORTFOLIO_SEED = {
         { key: 'ph4', progress: 0, color: '#7A6E67', start: '—', end: '—' },
         { key: 'ph5', progress: 0, color: '#7A6E67', start: '—', end: '—' },
       ],
+      studyPhases: [
+        { key: 'sp1', progress: 100 },
+        { key: 'sp2', progress: 75  },
+        { key: 'sp3', progress: 30  },
+        { key: 'sp4', progress: 0   },
+      ],
       milestones: [],
       costs: {
         totalRevenue:     313.18,
@@ -874,6 +880,12 @@ export const PORTFOLIO_SEED = {
         { key: 'ph3', progress: 0, color: '#7A6E67', start: '—', end: '—' },
         { key: 'ph4', progress: 0, color: '#7A6E67', start: '—', end: '—' },
         { key: 'ph5', progress: 0, color: '#7A6E67', start: '—', end: '—' },
+      ],
+      studyPhases: [
+        { key: 'sp1', progress: 100 },
+        { key: 'sp2', progress: 0   },
+        { key: 'sp3', progress: 0   },
+        { key: 'sp4', progress: 0   },
       ],
       milestones: [],
       costs: {
