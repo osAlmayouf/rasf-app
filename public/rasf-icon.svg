@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44">
+  <!-- Warm tan background (matches RASF logo right panel) -->
+  <rect width="44" height="44" fill="#C9B49A"/>
+  <!-- Stylized building floor plates — angled parallelograms, wider at top -->
+  <!-- Band 1 (top / widest) -->
+  <polygon points="1,10 43,6 43,11 1,15" fill="white" fill-opacity="0.90"/>
+  <!-- Band 2 -->
+  <polygon points="4,19 43,15 43,20 4,24" fill="white" fill-opacity="0.90"/>
+  <!-- Band 3 -->
+  <polygon points="10,28 43,24 43,29 10,33" fill="white" fill-opacity="0.90"/>
+  <!-- Band 4 (bottom / narrowest) -->
+  <polygon points="18,37 43,33 43,38 18,42" fill="white" fill-opacity="0.90"/>
+</svg>

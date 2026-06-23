@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>رصف | RASF</title>
+
+    <!-- FOUC prevention: apply saved theme before React paints -->
+    <script>
+      (function () {
+        var saved = localStorage.getItem('rasf-theme');
+        var preferred = (!saved && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : null;
+        var theme = saved || preferred || 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
+      })();
+    </script>
+
+    <!-- Fonts: Almarai (Arabic) + Inter (Latin fallback) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

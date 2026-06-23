@@ -1,0 +1,414 @@
+@import "tailwindcss";
+
+/* ══════════════════════════════════════════════════════════════
+   RASF Design System — index.css
+   Semantic tokens → Light & Dark modes via [data-theme]
+   Fonts: Bressay (Latin/brand) + Almarai (Arabic) + Inter (fallback)
+══════════════════════════════════════════════════════════════ */
+
+/* ── @font-face: Bressay ─────────────────────────────────── */
+@font-face {
+  font-family: 'Bressay';
+  src: url('/fonts/Bressay-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Bressay';
+  src: url('/fonts/Bressay-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ── Tailwind theme extension ────────────────────────────── */
+@theme {
+  /* RASF Brand palette — raw primitives */
+  --color-rasf-brown:       #473530;
+  --color-rasf-beige:       #CEB69F;
+  --color-rasf-black:       #211E1B;
+  --color-rasf-cream:       #FAF0E6;
+  --color-rasf-gray-light:  #E2DBD3;
+  --color-rasf-gray-mid:    #89817D;
+
+  /* Semantic aliases (Tailwind classes) */
+  --color-primary:   var(--rasf-primary);
+  --color-accent:    var(--rasf-accent);
+  --color-surface:   var(--bg-card);
+  --color-muted:     var(--text-muted);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   DARK MODE — default (no [data-theme] = dark)
+══════════════════════════════════════════════════════════════ */
+:root {
+  color-scheme: dark;
+
+  /* ── Brand primitives (scoped) ── */
+  --rasf-primary:       #CEB69F;   /* beige = primary on dark */
+  --rasf-accent:        #473530;   /* brown = accent on dark  */
+  --rasf-primary-hover: #D9C8B0;
+  --rasf-primary-dim:   rgba(206,182,159,0.12);
+
+  /* ── Backgrounds ── */
+  --bg-app:             #131009;
+  --bg-card:            #1D1813;
+  --bg-card-strong:     #261F1A;
+  --bg-sidebar:         #0F0D0A;
+  --bg-topbar:          #131009;
+  --bg-row-a:           #131009;
+  --bg-row-b:           #181310;
+  --bg-row-hover:       #221A14;
+  --bg-subtle:          rgba(206,182,159,0.07);
+  --bg-input:           #1D1813;
+  --bg-btn:             #1D1813;
+  --bg-tag-cool:        rgba(255,255,255,0.04);
+  --bg-tag-warm:        rgba(206,182,159,0.10);
+  --bg-tag-red:         rgba(255,77,77,0.08);
+
+  /* ── Borders ── */
+  --border:             #2A231E;
+  --border-soft:        #332820;
+  --border-mid:         #3D302A;
+  --border-faint:       #1D1813;
+  --border-sidebar:     #171210;
+  --border-tag-warm:    rgba(206,182,159,0.25);
+  --border-tag-warm2:   rgba(206,182,159,0.35);
+  --border-tag-cool:    #2A231E;
+  --border-tag-red:     rgba(255,77,77,0.22);
+
+  /* ── Text ── */
+  --text-hi:            #FAF0E6;   /* cream */
+  --text-med:           #CEB69F;   /* brand beige */
+  --text-lo:            #A89080;
+  --text-muted:         #89817D;
+  --text-faint:         #6B5A52;
+  --text-tag-red:       #FF6060;
+
+  /* ── Accent (legacy alias kept for components) ── */
+  --accent:             #CEB69F;
+  --accent2:            #D4C0A8;
+
+  /* ── Misc ── */
+  --progress-track:     #2A231E;
+  --scrollbar-thumb:    #2A231E;
+  --glass-line:         rgba(255,255,255,0.06);
+  --pending-dot:        #3A2E28;
+  --pending-dotbg:      rgba(255,255,255,0.03);
+  --pending-dotbrd:     rgba(255,255,255,0.08);
+  --pending-badge:      rgba(206,182,159,0.06);
+  --ms-future:          #6B5A52;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LIGHT MODE — [data-theme="light"]
+══════════════════════════════════════════════════════════════ */
+[data-theme="light"] {
+  color-scheme: light;
+
+  /* ── Brand primitives (scoped) ── */
+  --rasf-primary:       #473530;   /* brown = primary on light */
+  --rasf-accent:        #CEB69F;   /* beige = accent on light  */
+  --rasf-primary-hover: #5C4540;
+  --rasf-primary-dim:   rgba(71,53,48,0.08);
+
+  /* ── Backgrounds ── */
+  --bg-app:             #E2DBD3;   /* warm gray — page canvas */
+  --bg-card:            #FAF0E6;   /* cream — cards elevated above canvas */
+  --bg-card-strong:     #F0E8DC;   /* cream variant, slightly subdued */
+  --bg-sidebar:         #E8E0D6;   /* between app and card */
+  --bg-topbar:          #FAF0E6;   /* matches cards — elevated nav */
+  --bg-row-a:           #FAF0E6;   /* matches card bg */
+  --bg-row-b:           #F5EDE3;   /* slight alternating tint */
+  --bg-row-hover:       #EDE5D8;
+  --bg-subtle:          rgba(71,53,48,0.06);
+  --bg-input:           #FFFFFF;   /* white — max contrast on cream cards */
+  --bg-btn:             #F0E8DC;
+  --bg-tag-cool:        rgba(71,53,48,0.06);
+  --bg-tag-warm:        rgba(71,53,48,0.08);
+  --bg-tag-red:         rgba(180,60,60,0.08);
+
+  /* ── Borders ── */
+  --border:             #DAD2CC;   /* tonal — card edge against app bg */
+  --border-soft:        #E8E2DC;   /* very subtle on cream card surface */
+  --border-mid:         #C8C0B8;   /* clear separator */
+  --border-faint:       #EBE4DA;   /* barely visible divider on cream */
+  --border-sidebar:     #D4CCC4;
+  --border-tag-warm:    rgba(71,53,48,0.20);
+  --border-tag-warm2:   rgba(71,53,48,0.30);
+  --border-tag-cool:    rgba(71,53,48,0.15);
+  --border-tag-red:     rgba(180,60,60,0.22);
+
+  /* ── Text ── */
+  --text-hi:            #211E1B;   /* brand near-black */
+  --text-med:           #473530;   /* brand brown */
+  --text-lo:            #6B5A52;
+  --text-muted:         #89817D;
+  --text-faint:         #9A8A7E;
+  --text-tag-red:       #B04040;
+
+  /* ── Accent (legacy alias) ── */
+  --accent:             #473530;
+  --accent2:            #CEB69F;
+
+  /* ── Misc ── */
+  --progress-track:     #E2DBD3;   /* matches app bg — track looks recessed on cream card */
+  --scrollbar-thumb:    #CEC8C0;
+  --glass-line:         rgba(71,53,48,0.10);
+  --pending-dot:        #CEB69F;
+  --pending-dotbg:      rgba(71,53,48,0.05);
+  --pending-dotbrd:     rgba(71,53,48,0.15);
+  --pending-badge:      rgba(71,53,48,0.05);
+  --ms-future:          #9A8A7E;
+}
+
+/* ── Smooth theme transition ─────────────────────────────── */
+*, *::before, *::after {
+  transition: background-color 0.22s ease, border-color 0.22s ease, color 0.18s ease;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   BASE
+══════════════════════════════════════════════════════════════ */
+@layer base {
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg-app);
+    color: var(--text-hi);
+    min-height: 100vh;
+    overflow: hidden;
+  }
+
+  /* Arabic → Almarai; English/brand headings → Bressay with Inter fallback */
+  html[lang="ar"] body,
+  html[lang="ar"] * {
+    font-family: 'Almarai', 'Inter', sans-serif;
+  }
+
+  html[lang="en"] body,
+  html[lang="en"] * {
+    font-family: 'Bressay', 'Inter', sans-serif;
+  }
+
+  /* Headings in Arabic mode use Almarai Bold */
+  html[lang="ar"] h1, html[lang="ar"] h2, html[lang="ar"] h3 {
+    font-family: 'Almarai', sans-serif;
+    font-weight: 800;
+  }
+  /* Headings in English mode use Bressay Bold */
+  html[lang="en"] h1, html[lang="en"] h2, html[lang="en"] h3 {
+    font-family: 'Bressay', 'Inter', sans-serif;
+    font-weight: 700;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   COMPONENT STYLES
+══════════════════════════════════════════════════════════════ */
+
+/* ── Cards ────────────────────────────────────────────────── */
+.glass {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+}
+.glass-strong {
+  background: var(--bg-card-strong);
+  border: 1px solid var(--border-soft);
+}
+
+/* ── Brand colors ─────────────────────────────────────────── */
+.gold    { color: var(--rasf-primary); }
+.gold-bg { background: linear-gradient(135deg, var(--rasf-primary), var(--accent2)); }
+
+/* ── Sidebar ──────────────────────────────────────────────── */
+.sidebar {
+  width: 240px; min-height: 100vh;
+  background: var(--bg-sidebar);
+  border-color: var(--border-sidebar);
+  flex-shrink: 0;
+}
+
+/* ── Nav items ────────────────────────────────────────────── */
+.nav-item {
+  padding: 10px 14px; border-radius: 8px; cursor: pointer;
+  font-size: 13.5px; font-weight: 500;
+  color: var(--text-faint);
+  transition: all .18s;
+  display: flex; align-items: center; gap: 10px;
+  position: relative;
+}
+.nav-item:hover { background: var(--bg-subtle); color: var(--text-med); }
+.nav-item.active { background: var(--rasf-primary-dim); color: var(--rasf-primary); }
+
+.nav-item.active::after {
+  content: '';
+  position: absolute;
+  inset-inline-end: 0;
+  top: 20%; height: 60%;
+  width: 3px; border-radius: 3px 0 0 3px;
+  background: var(--rasf-primary);
+}
+
+.nav-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--border-soft); flex-shrink: 0; transition: .2s;
+}
+.nav-item.active .nav-dot {
+  background: var(--rasf-primary);
+  box-shadow: 0 0 5px rgba(206,182,159,0.4);
+}
+[data-theme="light"] .nav-item.active .nav-dot {
+  box-shadow: 0 0 5px rgba(71,53,48,0.3);
+}
+
+/* ── KPI cards ────────────────────────────────────────────── */
+.kpi {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-top: 2px solid var(--rasf-primary);
+  border-radius: 12px;
+  padding: 16px;
+  transition: background .2s;
+}
+.kpi:hover { background: var(--bg-card-strong); }
+
+/* ── Progress ─────────────────────────────────────────────── */
+.progress { height: 3px; background: var(--progress-track); border-radius: 3px; overflow: hidden; }
+.progress-fill {
+  height: 100%; border-radius: 3px;
+  background: linear-gradient(90deg, var(--rasf-primary), var(--accent2));
+}
+
+/* ── Tags ─────────────────────────────────────────────────── */
+.tag {
+  padding: 2px 9px; border-radius: 20px; font-size: 11px;
+  font-weight: 600; display: inline-block; letter-spacing: 0.2px;
+}
+.tag-green  { background: var(--bg-tag-warm);  color: var(--accent2);    border: 1px solid var(--border-tag-warm); }
+.tag-amber  { background: var(--bg-tag-warm);  color: var(--rasf-primary); border: 1px solid var(--border-tag-warm2); }
+.tag-blue   { background: var(--bg-tag-cool);  color: var(--text-muted); border: 1px solid var(--border-tag-cool); }
+.tag-red    { background: var(--bg-tag-red);   color: var(--text-tag-red); border: 1px solid var(--border-tag-red); }
+.tag-purple { background: var(--bg-tag-cool);  color: var(--text-muted); border: 1px solid var(--border-tag-cool); }
+
+/* ── Table rows ───────────────────────────────────────────── */
+.trow { transition: all .15s; }
+.trow:nth-child(odd)  { background: var(--bg-row-a); }
+.trow:nth-child(even) { background: var(--bg-row-b); }
+.trow:hover {
+  background: var(--bg-row-hover) !important;
+  box-shadow: inset 2px 0 0 var(--rasf-primary);
+}
+
+/* ── Upload zone ──────────────────────────────────────────── */
+.upload-zone {
+  border: 2px dashed var(--border-soft); border-radius: 12px;
+  background: var(--bg-card); transition: .25s; cursor: pointer;
+}
+.upload-zone:hover { border-color: var(--rasf-primary); background: var(--bg-subtle); }
+
+/* ── Language button ──────────────────────────────────────── */
+.lang-btn {
+  background: var(--bg-btn); border: 1px solid var(--border-soft);
+  border-radius: 8px; padding: 7px 14px; cursor: pointer; font-size: 13px;
+  color: var(--text-lo); transition: .18s; display: flex; align-items: center; gap: 6px;
+}
+.lang-btn:hover { border-color: var(--rasf-primary); color: var(--text-hi); }
+
+/* ── Display mode toggle button ───────────────────────────── */
+.display-mode-btn {
+  border: 1px solid var(--border-soft);
+  border-radius: 8px; padding: 7px 14px; cursor: pointer; font-size: 13px;
+  color: var(--text-lo); display: flex; align-items: center; gap: 6px;
+  transition: border-color .2s, background .2s;
+}
+.display-mode-btn:hover { border-color: var(--rasf-primary); color: var(--text-hi); }
+.display-mode-icon { font-size: 13px; line-height: 1; }
+
+/* ── Spin animation (Lucide Loader2) ─────────────────────── */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ── SAR number mode animation ────────────────────────────── */
+@keyframes sarNumIn {
+  from { opacity: 0; transform: translateY(-5px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+.sar-num-anim {
+  display: inline;
+  animation: sarNumIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* ── Section headings ─────────────────────────────────────── */
+.section-hd  { font-size: 15px; font-weight: 700; color: var(--text-hi); margin-bottom: 4px; letter-spacing: 0.1px; }
+.section-sub { font-size: 11.5px; color: var(--text-muted); }
+
+/* ── Lifecycle ────────────────────────────────────────────── */
+.lifecycle-step {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px; text-align: center; flex: 1; position: relative;
+}
+.lifecycle-step.done        { border-color: rgba(206,182,159,0.30); background: rgba(206,182,159,0.04); }
+.lifecycle-step.active-step { border-color: var(--rasf-primary);   background: var(--rasf-primary-dim); }
+[data-theme="light"] .lifecycle-step.done        { border-color: rgba(71,53,48,0.25); background: rgba(71,53,48,0.04); }
+[data-theme="light"] .lifecycle-step.active-step { border-color: var(--rasf-primary); background: var(--rasf-primary-dim); }
+.lifecycle-arrow { color: var(--border-soft); font-size: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+/* ── Tabs ─────────────────────────────────────────────────── */
+.tab-btn {
+  padding: 10px 16px; font-size: 13px; font-weight: 500; cursor: pointer;
+  border-bottom: 2px solid transparent; color: var(--text-faint);
+  white-space: nowrap; transition: .18s;
+  background: none; border-top: none; border-left: none; border-right: none;
+}
+.tab-btn:hover  { color: var(--text-med); }
+.tab-btn.active { border-color: var(--rasf-primary); color: var(--rasf-primary); font-weight: 700; }
+
+/* ── Scrollbar ────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--rasf-primary); }
+
+input[type=file] { display: none; }
+
+/* ══════════════════════════════════════════════════════════════
+   PRINT / PDF EXPORT
+   Always light mode for clarity regardless of screen theme
+══════════════════════════════════════════════════════════════ */
+#rasf-print-root    { display: none; }
+#rasf-print-overlay { /* shown normally via inline style */ }
+
+@media print {
+  *, *::before, *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    transition: none !important;
+  }
+
+  /* Force light palette for print */
+  html {
+    --rasf-primary:       #473530 !important;
+    --rasf-accent:        #CEB69F !important;
+    --rasf-primary-dim:   rgba(71,53,48,0.08) !important;
+    --bg-app:             #FAF0E6 !important;
+    --bg-card:            #FFFFFF !important;
+    --bg-card-strong:     #F5EDE3 !important;
+    --border:             #E2DBD3 !important;
+    --text-hi:            #211E1B !important;
+    --text-med:           #473530 !important;
+    --text-muted:         #89817D !important;
+    --glass-line:         rgba(71,53,48,0.12) !important;
+    --accent:             #473530 !important;
+    --accent2:            #CEB69F !important;
+  }
+
+  @page { size: A4 portrait; margin: 0; }
+
+  #root,
+  #rasf-print-overlay { display: none !important; }
+  #rasf-print-root    { display: block !important; }
+}
