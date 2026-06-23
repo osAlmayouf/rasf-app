@@ -20,10 +20,12 @@ export function AuthProvider({ children }) {
 
   // ── Listen for auth changes ────────────────────────────────────────
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      fetchProfile(session?.user?.id);
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        setSession(session);
+        fetchProfile(session?.user?.id);
+      })
+      .catch(() => setSession(null)); // missing/invalid env vars → show login
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
