@@ -4,12 +4,12 @@ import { PortfolioService }    from '../services/PortfolioService';
 import { FileService }         from '../services/FileService';
 import { NotesService }        from '../services/NotesService';
 import { SupabaseDataService } from '../services/SupabaseDataService';
-import { PORTFOLIO_SEED, FILES_SEED } from '../data/seedData';
+import { PORTFOLIO_SEED } from '../data/seedData';
 
 export const AppContext = createContext(null);
 
-const i18n        = TranslationService.getInstance();
-const fileService = new FileService(FILES_SEED);
+const i18n         = TranslationService.getInstance();
+const fileService  = new FileService();
 const notesService = new NotesService();
 
 export function AppProvider({ children }) {

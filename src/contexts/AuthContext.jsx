@@ -87,13 +87,14 @@ export function AuthProvider({ children }) {
     return data ?? [];
   }, []);
 
-  const isAdmin   = profile?.role === 'admin';
-  const loading   = session === undefined;
-  const loggedIn  = !!session;
+  const isAdmin    = profile?.role === 'admin';
+  const isDepAdmin = profile?.role === 'admin' || profile?.role === 'dep_admin';
+  const loading    = session === undefined;
+  const loggedIn   = !!session;
 
   return (
     <AuthContext.Provider value={{
-      session, profile, loading, loggedIn, isAdmin,
+      session, profile, loading, loggedIn, isAdmin, isDepAdmin,
       login, logout, createUser, updateUserProfile, listUsers,
     }}>
       {children}

@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { useApp } from '../../../contexts/useApp';
-import GlassCard from '../../common/GlassCard';
+import { useState, useEffect, useCallback } from 'react';
+import { useApp }  from '../../../contexts/useApp';
+import { useAuth } from '../../../contexts/useAuth';
+import GlassCard   from '../../common/GlassCard';
 
 function fmtDateTime(iso, lang) {
   const d = new Date(iso);
@@ -11,23 +12,36 @@ function fmtDateTime(iso, lang) {
 }
 
 export default function ProjectNotes({ project }) {
-  const { t, lang, notesService, refreshNotes } = useApp();
-  const [adding, setAdding] = useState(false);
-  const [draft,  setDraft]  = useState('');
+  const { t, lang, notesService } = useApp();
+  const { profile }               = useAuth();
+  const [notes,   setNotes]   = useState([]);
+  const [adding,  setAdding]  = useState(false);
+  const [draft,   setDraft]   = useState('');
+  const [saving,  setSaving]  = useState(false);
 
-  const notes = notesService.getNotesForProject(project.id);
+  const fetchNotes = useCallback(async () => {
+    const data = await notesService.getNotesForProject(project.id);
+    setNotes(data);
+  }, [notesService, project.id]);
 
-  const handleSave = () => {
+  useEffect(() => { fetchNotes(); }, [fetchNotes]);
+
+  const handleSave = async () => {
     if (!draft.trim()) return;
-    notesService.addNote(project.id, draft.trim());
-    setDraft('');
-    setAdding(false);
-    refreshNotes();
+    setSaving(true);
+    try {
+      await notesService.addNote(project.id, draft.trim(), profile);
+      setDraft('');
+      setAdding(false);
+      await fetchNotes();
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleRemove = (noteId) => {
-    notesService.removeFromPortfolio(noteId);
-    refreshNotes();
+  const handleRemove = async (noteId) => {
+    await notesService.removeFromPortfolio(noteId);
+    await fetchNotes();
   };
 
   return (
@@ -49,10 +63,7 @@ export default function ProjectNotes({ project }) {
                 fontSize: 13,
                 fontWeight: 600,
                 cursor: 'pointer',
-                transition: 'background 0.15s',
               }}
-              onMouseEnter={e => e.currentTarget.style.background = 'var(--rasf-primary-dim)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'var(--rasf-primary-dim)'}
             >
               {t('notesAdd')}
             </button>
@@ -99,20 +110,19 @@ export default function ProjectNotes({ project }) {
               </button>
               <button
                 onClick={handleSave}
-                disabled={!draft.trim()}
+                disabled={!draft.trim() || saving}
                 style={{
-                  background: draft.trim() ? 'var(--rasf-primary)' : 'var(--rasf-primary-dim)',
+                  background: draft.trim() && !saving ? 'var(--rasf-primary)' : 'var(--rasf-primary-dim)',
                   border: 'none',
-                  color: draft.trim() ? 'var(--bg-app)' : 'var(--text-faint)',
+                  color: draft.trim() && !saving ? 'var(--bg-app)' : 'var(--text-faint)',
                   borderRadius: 8,
                   padding: '6px 22px',
                   fontSize: 13,
                   fontWeight: 600,
-                  cursor: draft.trim() ? 'pointer' : 'not-allowed',
-                  transition: 'background 0.15s',
+                  cursor: draft.trim() && !saving ? 'pointer' : 'not-allowed',
                 }}
               >
-                {t('notesSave')}
+                {saving ? '...' : t('notesSave')}
               </button>
             </div>
           </div>
@@ -136,9 +146,7 @@ export default function ProjectNotes({ project }) {
                 key={note.id}
                 style={{
                   background: deleted ? 'var(--bg-subtle)' : 'var(--bg-card-strong)',
-                  border: deleted
-                    ? '1px solid var(--border-faint)'
-                    : '1px solid var(--border-soft)',
+                  border: deleted ? '1px solid var(--border-faint)' : '1px solid var(--border-soft)',
                   borderRadius: 16,
                   padding: '16px 18px',
                   opacity: deleted ? 0.55 : 1,
@@ -146,7 +154,6 @@ export default function ProjectNotes({ project }) {
                 }}
               >
                 <div className="flex justify-between items-start gap-4">
-                  {/* Note body */}
                   <div className="flex-1 min-w-0">
                     <p
                       style={{
@@ -162,6 +169,11 @@ export default function ProjectNotes({ project }) {
                       {note.text}
                     </p>
                     <div className="flex items-center gap-3 mt-2 flex-wrap">
+                      {/* Author */}
+                      <span style={{ color: 'var(--rasf-primary)', fontSize: 11, fontWeight: 600 }}>
+                        {note.addedBy}
+                      </span>
+                      <span style={{ color: 'var(--border-mid)', fontSize: 11 }}>·</span>
                       <span style={{ color: '#7A6E67', fontSize: 11 }}>
                         {fmtDateTime(note.createdAt, lang)}
                       </span>
@@ -183,7 +195,6 @@ export default function ProjectNotes({ project }) {
                     </div>
                   </div>
 
-                  {/* Remove button — only on active notes */}
                   {!deleted && (
                     <button
                       onClick={() => handleRemove(note.id)}

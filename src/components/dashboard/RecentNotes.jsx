@@ -1,23 +1,30 @@
-import { useApp } from '../../contexts/useApp';
-import GlassCard from '../common/GlassCard';
+import { useState, useEffect } from 'react';
+import { useApp }  from '../../contexts/useApp';
+import GlassCard   from '../common/GlassCard';
 
-function fmtDate(iso, lang) {
+function fmtDateTime(iso, lang) {
   const d = new Date(iso);
-  const locale = lang === 'ar' ? 'ar-SA-u-nu-latn' : 'en-US';
-  return d.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
+  const locale   = lang === 'ar' ? 'ar-SA-u-nu-latn' : 'en-US';
+  const datePart = d.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' });
+  const timePart = d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: false });
+  return `${datePart} — ${timePart}`;
 }
 
 export default function RecentNotes() {
   const { t, lang, notesService, portfolioService, setPage, setSelectedProjectId } = useApp();
-  const notes = notesService.getRecentPortfolioNotes(3);
+  const [notes, setNotes] = useState([]);
+
+  useEffect(() => {
+    notesService.getAllNotes().then(setNotes);
+  }, [notesService]);
 
   const handleClick = (note) => {
     setSelectedProjectId(note.projectId);
-    setPage('projects');
+    setPage('project');
   };
 
   return (
-    <GlassCard>
+    <GlassCard style={{ display: 'flex', flexDirection: 'column' }}>
       <div className="section-hd mb-4">{t('recentNotesT')}</div>
 
       {notes.length === 0 ? (
@@ -28,9 +35,12 @@ export default function RecentNotes() {
           {t('recentNotesEmpty')}
         </div>
       ) : (
-        <div className="space-y-2">
+        <div
+          className="space-y-2"
+          style={{ maxHeight: 420, overflowY: 'auto', paddingRight: 4 }}
+        >
           {notes.map(note => {
-            const project = portfolioService.getProject(note.projectId);
+            const project = portfolioService?.getProject(note.projectId);
             return (
               <button
                 key={note.id}
@@ -55,14 +65,17 @@ export default function RecentNotes() {
                   e.currentTarget.style.background   = 'var(--bg-card)';
                 }}
               >
-                <div className="flex justify-between items-center mb-1">
+                {/* Project name + timestamp row */}
+                <div className="flex justify-between items-center mb-1 gap-2">
                   <span style={{ color: 'var(--text-muted)', fontSize: 10, flexShrink: 0 }}>
-                    {fmtDate(note.createdAt, lang)}
+                    {fmtDateTime(note.createdAt, lang)}
                   </span>
                   <span style={{ color: 'var(--rasf-primary)', fontSize: 11, fontWeight: 600 }}>
                     {project?.name ?? note.projectId}
                   </span>
                 </div>
+
+                {/* Note text */}
                 <p
                   style={{
                     color: 'var(--text-lo)',
@@ -78,6 +91,22 @@ export default function RecentNotes() {
                 >
                   {note.text}
                 </p>
+
+                {/* Author */}
+                <div style={{ marginTop: 5, textAlign: 'left' }}>
+                  <span
+                    style={{
+                      fontSize: 10,
+                      color: 'var(--text-faint)',
+                      background: 'var(--bg-subtle)',
+                      border: '1px solid var(--border-faint)',
+                      borderRadius: 5,
+                      padding: '1px 7px',
+                    }}
+                  >
+                    {note.addedBy}
+                  </span>
+                </div>
               </button>
             );
           })}

@@ -7,7 +7,7 @@ export const FileCategory = Object.freeze({
   DRAWINGS:   'drw',
 });
 
-const ICONS = { pdf: '📄', xlsx: '📊', xls: '📊', doc: '📝', docx: '📝', dwg: '🏛️' };
+const ICONS = { pdf: '📄', xlsx: '📊', xls: '📊', xlsm: '📊', xlsb: '📊', doc: '📝', docx: '📝', dwg: '🏛️', png: '🖼️', jpg: '🖼️', jpeg: '🖼️' };
 const CATEGORY_TAGS = {
   [FileCategory.FINANCIAL]: 'tag-amber',
   [FileCategory.REPORTS]:   'tag-blue',
@@ -16,15 +16,16 @@ const CATEGORY_TAGS = {
 };
 
 export class FileDocument extends Entity {
-  constructor({ id, name, category, sizeMB, date, projectId, projectName, uploadedBy }) {
+  constructor({ id, name, category, sizeMB, date, projectId, projectName, uploadedBy, storagePath }) {
     super(id);
     this.name        = name;
     this.category    = category;
     this.sizeMB      = sizeMB;
     this.date        = date;
     this.projectId   = projectId;
-    this.projectName = projectName;
+    this.projectName = projectName ?? '';
     this.uploadedBy  = uploadedBy;
+    this.storagePath = storagePath ?? null;
   }
 
   get extension() {
@@ -43,16 +44,7 @@ export class FileDocument extends Entity {
     return `${this.sizeMB} MB`;
   }
 
-  static fromUpload(file, projectId = null, projectName = '', category = FileCategory.FINANCIAL, uploadedBy = '—') {
-    return new FileDocument({
-      id:          crypto.randomUUID(),
-      name:        file.name,
-      category,
-      sizeMB:      (file.size / 1024 / 1024).toFixed(1),
-      date:        new Date().toLocaleDateString('ar-SA'),
-      projectId,
-      projectName,
-      uploadedBy,
-    });
+  get isPreviewable() {
+    return ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'xlsx', 'xls', 'xlsm', 'xlsb'].includes(this.extension);
   }
 }

@@ -20,6 +20,10 @@ dist-ssr
 # Supabase local state
 supabase/.temp/
 
+# Claude Code
+CLAUDE.md
+explan.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

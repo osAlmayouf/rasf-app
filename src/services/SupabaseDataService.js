@@ -43,6 +43,7 @@ export class SupabaseDataService {
           portfolioRaw.projects.map((p, i) => ({
             id:         p.id,
             data:       p,
+            status:     p.status === 'pipeline' ? 'pipeline' : 'portfolio',
             sort_order: i,
             updated_at: new Date().toISOString(),
           }))
@@ -74,6 +75,7 @@ export class SupabaseDataService {
         seed.projects.map((p, i) => ({
           id:         p.id,
           data:       p,
+          status:     p.status === 'pipeline' ? 'pipeline' : 'portfolio',
           sort_order: i,
         }))
       ),
