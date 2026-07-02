@@ -1,12 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApp } from '../../contexts/useApp';
 import { fmtPct, fmtMonthYear } from '../../utils/fmt';
 import { addUnit } from '../../utils/fmtMode';
 import GlassCard from '../common/GlassCard';
 import Tag from '../common/Tag';
 import SARNum from '../common/SARNum';
-import NewProjectModal from '../common/NewProjectModal';
-import { Search, Archive, ArrowUp, ArrowUpDown, ChevronDown, ChevronRight, Plus } from 'lucide-react';
+import { Search, Archive, ArrowUp, ArrowUpDown, ChevronDown, ChevronRight, MessageSquare } from 'lucide-react';
+
+function fmtDate(iso, lang) {
+  const d = new Date(iso);
+  return d.toLocaleDateString(lang === 'ar' ? 'ar-SA-u-nu-latn' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
 
 const TYPE_LABEL_MAP = {
   residential: 'typeRes', commercial: 'typeCom', industrial: 'typeInd', infrastructure: 'typeInfra',
@@ -43,15 +47,31 @@ function SortToggle({ active, dir, label, onClick }) {
 }
 
 export default function PipelinePage() {
-  const { t, lang, portfolioService, refreshPortfolio, setPage, setSelectedProjectId, setOuterProjectTab, displayMode } = useApp();
+  const { t, lang, portfolioService, notesService, refreshPortfolio, setPage, setSelectedProjectId, setOuterProjectTab, displayMode } = useApp();
   const [confirm, setConfirm]           = useState(null);
   const [showArchived, setShowArchived] = useState(false);
-  const [showNewModal, setShowNewModal] = useState(false);
   const [sortKey, setSortKey]           = useState('opportunityDate');
   const [sortDir, setSortDir]           = useState('asc');
+  const [notesByProject, setNotesByProject] = useState({});
 
   const projects = portfolioService.getPipelineProjects();
   const archived = portfolioService.getArchivedProjects();
+
+  useEffect(() => {
+    if (!projects.length) return;
+    Promise.all(
+      projects.map(p =>
+        notesService.getNotesForProject(p.id).then(notes => ({ id: p.id, notes }))
+      )
+    ).then(results => {
+      const map = {};
+      results.forEach(({ id, notes }) => {
+        const active = notes.filter(n => !n.deletedFromPortfolio).slice(0, 3);
+        if (active.length > 0) map[id] = active;
+      });
+      setNotesByProject(map);
+    });
+  }, [projects.map(p => p.id).join(',')]); // eslint-disable-line
 
   const activeProjects = [...projects].sort((a, b) => {
     let va = a[sortKey] ?? (sortKey === 'investmentM' ? 0 : '9999-99-99');
@@ -143,51 +163,10 @@ export default function PipelinePage() {
       )}
 
       {/* Page header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="section-hd">{t('ptPipeline')}</div>
-          <div className="section-sub">{t('pipelineSubtitle') || 'المشاريع قيد الدراسة والتقييم'}</div>
-        </div>
-        <button
-          onClick={() => setShowNewModal(true)}
-          style={{
-            background: 'var(--rasf-primary)', color: 'var(--bg-app)',
-            borderRadius: 8, padding: '9px 20px', fontSize: 13, fontWeight: 800,
-            cursor: 'pointer', border: 'none', transition: 'opacity .18s', letterSpacing: '0.2px',
-            display: 'flex', alignItems: 'center', gap: 6,
-          }}
-          onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
-          onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-        >
-          <Plus size={14} />
-          {t('tbNew')}
-        </button>
+      <div>
+        <div className="section-hd">{t('ptPipeline')}</div>
+        <div className="section-sub">{t('pipelineSubtitle') || 'المشاريع قيد الدراسة والتقييم'}</div>
       </div>
-
-      {/* Summary strip */}
-      {activeProjects.length > 0 && (
-        <div className="grid grid-cols-3 gap-4">
-          <GlassCard>
-            <div className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{t('plCount')}</div>
-            <div className="text-2xl font-bold gold">{activeProjects.length}</div>
-            <div className="text-xs mt-1" style={{ color: 'var(--text-faint)' }}>
-              الإجمالي شامل المؤرشف: <span style={{ fontWeight: 700, color: 'var(--text-muted)' }}>{activeProjects.length + archived.length}</span>
-            </div>
-          </GlassCard>
-          <GlassCard>
-            <div className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{addUnit(t('plTotalInv'), displayMode, lang)}</div>
-            <div className="text-2xl font-bold" style={{ color: 'var(--text-hi)' }}>
-              <SARNum millions={activeProjects.reduce((s, p) => s + (p.investmentM || 0), 0)} />
-            </div>
-          </GlassCard>
-          <GlassCard>
-            <div className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{t('plAvgIRR')}</div>
-            <div className="text-2xl font-bold" style={{ color: '#10b981' }}>
-              {fmtPct(activeProjects.reduce((s, p) => s + p.irr, 0) / activeProjects.length)}
-            </div>
-          </GlassCard>
-        </div>
-      )}
 
       {/* Empty state */}
       {activeProjects.length === 0 && archived.length === 0 && (
@@ -200,9 +179,15 @@ export default function PipelinePage() {
         </GlassCard>
       )}
 
-      {/* Projects table */}
+      {/* Two-column layout: table (left) + notes (right) */}
       {activeProjects.length > 0 && (
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 20, alignItems: 'start' }}>
+
+      {/* Left column: table + archived */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+      {/* Projects table */}
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
           {/* Table header */}
           <div className="flex justify-between items-center px-6 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
             <div>
@@ -358,7 +343,6 @@ export default function PipelinePage() {
             </table>
           </div>
         </div>
-      )}
 
       {/* Archived section */}
       {archived.length > 0 && (
@@ -431,12 +415,95 @@ export default function PipelinePage() {
         </div>
       )}
 
-      {showNewModal && (
-        <NewProjectModal
-          onClose={() => setShowNewModal(false)}
-          defaultStatus="pipeline"
-        />
-      )}
+      </div>{/* end left column */}
+
+      {/* Right column: Notes panel */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{
+          background: 'var(--bg-card)', border: '1px solid var(--border)',
+          borderRadius: 14, overflow: 'hidden',
+        }}>
+          {/* Header */}
+          <div style={{
+            padding: '14px 16px', borderBottom: '1px solid var(--border)',
+            display: 'flex', alignItems: 'center', gap: 8,
+          }}>
+            <MessageSquare size={14} style={{ color: 'var(--rasf-primary)', flexShrink: 0 }} />
+            <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-hi)' }}>
+              {lang === 'ar' ? 'آخر الملاحظات' : 'Latest Notes'}
+            </span>
+          </div>
+
+          {/* Notes per project */}
+          <div style={{ padding: '12px 12px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {activeProjects.filter(p => notesByProject[p.id]?.length > 0).length === 0 ? (
+              <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-faint)', fontSize: 12 }}>
+                {lang === 'ar' ? 'لا توجد ملاحظات بعد' : 'No notes yet'}
+              </div>
+            ) : (
+              activeProjects.filter(p => notesByProject[p.id]?.length > 0).map(project => (
+                <div key={project.id}>
+                  {/* Project name */}
+                  <button
+                    onClick={() => { setSelectedProjectId(project.id); setOuterProjectTab('pipeline'); setPage('project'); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8,
+                      background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: '100%',
+                    }}
+                  >
+                    <span style={{
+                      width: 5, height: 5, borderRadius: '50%', flexShrink: 0,
+                      background: 'var(--rasf-primary)', display: 'inline-block',
+                    }} />
+                    <span style={{ color: 'var(--rasf-primary)', fontWeight: 700, fontSize: 12 }}>
+                      {project.name}
+                    </span>
+                  </button>
+
+                  {/* Last 3 notes */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {notesByProject[project.id].map(note => (
+                      <div
+                        key={note.id}
+                        style={{
+                          background: 'var(--bg-card-strong)',
+                          border: '1px solid var(--border-faint)',
+                          borderRadius: 9, padding: '8px 11px',
+                        }}
+                      >
+                        <p style={{
+                          color: 'var(--text-hi)', fontSize: 11.5, lineHeight: 1.65,
+                          margin: 0, textAlign: 'right',
+                          display: '-webkit-box', WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                        }}>
+                          {note.text}
+                        </p>
+                        <div style={{ marginTop: 5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: 9.5, color: 'var(--text-faint)' }}>
+                            {fmtDate(note.createdAt, lang)}
+                          </span>
+                          <span style={{
+                            fontSize: 9.5, color: 'var(--rasf-primary)', fontWeight: 600,
+                            background: 'var(--rasf-primary-dim)',
+                            border: '1px solid var(--border-tag-warm)',
+                            borderRadius: 4, padding: '1px 6px',
+                          }}>
+                            {note.addedBy}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>{/* end right column */}
+
+      </div>)}{/* end two-column grid */}
+
     </div>
   );
 }

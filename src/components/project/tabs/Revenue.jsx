@@ -17,7 +17,7 @@ const COMP_COLORS = {
 };
 
 function ls(key)         { try { return JSON.parse(localStorage.getItem(key)); } catch { return null; } }
-function lsSet(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
+function lsSet(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch { /* ignore */ } }
 
 function PctBar({ value, color = 'var(--rasf-primary)', height = 4 }) {
   return (
@@ -111,16 +111,20 @@ export default function Revenue({ project }) {
     ? (exitValue / project.investmentM).toFixed(2) : null;
 
   // ── Per-component rows ────────────────────────────────────────────────────
+  // Show a component only if it actually earns revenue in THIS stream — hide
+  // units-only rows (e.g. a hotel listed under annual rental with no annual income).
   const saleRows = useMemo(() =>
-    breakdown.filter(b => (b.totalSales ?? 0) > 0 || (b.salePricePerSqm ?? 0) > 0 || (b.saleUnits ?? 0) > 0),
+    breakdown.filter(b => (b.totalSales ?? 0) > 0 ||
+      ((b.salePricePerSqm ?? 0) > 0 && (b.saleUnits ?? 0) > 0 && (b.unitSize ?? 0) > 0)),
   [breakdown]);
 
   const rentRows = useMemo(() =>
-    breakdown.filter(b => (b.rentUnits ?? 0) > 0 || (b.annualRentalRevenue ?? 0) > 0),
+    breakdown.filter(b => (b.annualRentalRevenue ?? 0) > 0 ||
+      ((b.rentalRatePerSqm ?? 0) > 0 && (b.nsa ?? 0) > 0)),
   [breakdown]);
 
   const dailyRows = useMemo(() =>
-    breakdown.filter(b => (b.dailyAnnualRevenue ?? 0) > 0 || (b.dailyRatePerUnit ?? 0) > 0),
+    breakdown.filter(b => (b.dailyAnnualRevenue ?? 0) > 0),
   [breakdown]);
 
   const offplanPct = totalSales > 0 ? (offplan / totalSales) * 100 : 0;
@@ -357,9 +361,10 @@ export default function Revenue({ project }) {
                 const revenue    = b.dailyAnnualRevenue ?? 0;
                 const opCost     = b.operatingCostDaily ?? 0;
                 const netRevenue = revenue > 0 ? revenue - opCost : 0;
-                // Compute occupancy from stored values if available
-                const occ = revenue > 0 && dailyRate > 0 && units > 0
-                  ? Math.round((revenue * 1_000_000) / (units * 365 * dailyRate) * 100) : null;
+                // Prefer the study's stored occupancy; else derive it from revenue
+                const occ = b.occupancy != null ? Math.round(b.occupancy)
+                  : (revenue > 0 && dailyRate > 0 && units > 0
+                      ? Math.round((revenue * 1_000_000) / (units * 365 * dailyRate) * 100) : null);
                 const pct = dailyRental > 0 && revenue > 0 ? (revenue / dailyRental) * 100 : 0;
                 return (
                   <tr key={b.key} style={{ borderBottom: '1px solid var(--glass-line)' }}>

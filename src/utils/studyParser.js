@@ -30,7 +30,8 @@ const PATTERNS = {
   // ── MAIN KPIs ─────────────────────────────────────────────────────────────
   investmentM:      ['إجمالي التكاليف الرأسمالية', 'إجمالي التكاليف رأسمالية', 'Total CapEx',
                      'Total capital costs', 'إجمالي تكلفة المشروع', 'Total project cost',
-                     'إجمالي الاستثمار', 'حجم الاستثمار', 'قيمة المشروع'],
+                     'إجمالي الاستثمار', 'حجم الاستثمار', 'قيمة المشروع',
+                     'تكلفة اجمالي المشروع', 'تكلفة إجمالي المشروع'],
   totalRevenue:     ['إجمالي الإيرادات', 'الإيرادات (Revenues)', 'Revenue - الايرادات',
                      'إجمالي المبيعات', 'Total Revenue', 'Total Sales'],
   netProfit:        ['صافي الدخل (Net income)', 'صافي الربح', 'الربح الصافي',
@@ -46,7 +47,8 @@ const PATTERNS = {
   totalCost:        ['إجمالي التكاليف الكاملة', 'اجمالي تكاليف الصندوق', 'Total fund costs',
                      'Total project cost', 'التكلفة الإجمالية للمشروع',
                      'التكلفة الإجمالية + مصاريف الصندوق',
-                     'إجمالي التكاليف الكاملة للمشروع'],
+                     'إجمالي التكاليف الكاملة للمشروع',
+                     'تكلفة اجمالي المشروع', 'تكلفة إجمالي المشروع', 'Total Costs'],
   operationalCost:  ['إجمالي التكاليف التشغيلية', 'التكاليف التشغيلية', 'Total OpEx', 'OpEx'],
 
   // ── COST BREAKDOWN ────────────────────────────────────────────────────────
@@ -60,10 +62,10 @@ const PATTERNS = {
   finishingCost:    ['إجمالي تكاليف التشطيب', 'تكلفة التشطيب', 'Finishing Cost'],
   otherCost:        ['مجموع التكاليف الأخرى', 'تكاليف أخرى (Other cost)',
                      'إجمالي التكاليف الأخرى', 'Total other costs', 'soft cost'],
-  fundFees:         ['إجمالي تكاليف الصندوق', 'رسوم الصندوق (Fund costs)',
-                     'رسوم الصندوق (Fund fees)', 'إجمالي رسوم الصندوق',
-                     'Total Fund Fees', 'Fund Fees', 'Fund costs',
-                     'إجمالي مصروفات الصندوق'],
+  // fundFees = "إجمالي تكاليف الصندوق" (fund COSTS), NOT "رسوم الصندوق / Total Fund
+  // Fees" (a larger gross-fees figure the team tracks separately).
+  fundFees:         ['إجمالي تكاليف الصندوق', 'إجمالي مصروفات الصندوق',
+                     'رسوم الصندوق (Fund costs)', 'Fund costs'],
   financingCost:    ['رسوم التمويل (Finance fees)', 'فوائد التمويل', 'تكلفة التمويل',
                      'اجمالي تكلفة القرض', 'Total loan cost', 'Financing Fees', 'Financing fee'],
   developerFee:     ['تكاليف المطور (Developer costs)', 'Developer Fee',
@@ -155,7 +157,8 @@ const PATTERNS = {
   offplanRevenue:      ['إجمالي إيرادات البيع على الخارطة', 'صافي المبيعات على الخارطة',
                         'البيع على الخارطة - قيمة إجمالية', 'Total off-plan revenue'],
   exitValue:           ['إجمالي قيمة المخارجة', 'المخارجة (Buyout)', 'Buyout value',
-                        'Exit value', 'المخارجة - قيمة إجمالية'],
+                        'Exit value', 'المخارجة - قيمة إجمالية',
+                        'المخارجة - (Buyout)', 'المخارجة', 'Buyout'],
 
   // ── OFF-PLAN DETAILS ──────────────────────────────────────────────────────
   offplanUnits:     ['عدد الوحدات المباعة على الخارطة', 'Off-plan units sold'],
@@ -205,6 +208,7 @@ const PCT_FIELDS = new Set([
   'rettPct', 'commissionPct', 'annualInterestRate',
 ]);
 
+
 const NUM_FIELDS = new Set([
   'farValue', 'paybackYears', 'moic',
 ]);
@@ -232,7 +236,7 @@ const STATUS_MAP = {
 function normalizeNum(v) {
   if (typeof v === 'number') return v;
   if (typeof v !== 'string') return null;
-  const cleaned = v.replace(/[,،\s%()\-]/g, '');
+  const cleaned = v.replace(/[,،\s%()-]/g, '');
   const n = parseFloat(cleaned);
   return isNaN(n) ? null : n;
 }
@@ -258,6 +262,18 @@ function matchesAny(cellVal, keywords) {
   if (typeof cellVal !== 'string') return false;
   const norm = cellVal.trim().toLowerCase();
   return keywords.some(kw => norm.includes(kw.toLowerCase()));
+}
+
+// ─── DESCRIPTOR-ROW GUARD ─────────────────────────────────────────────────────
+// Distribution/ratio rows (e.g. "إجمالي قيمة ونسبة تكاليف الأرض من إجمالي ...")
+// and per-m² rate rows contain money/area keywords but are NOT a total value.
+const DESCRIPTOR_MARKERS = ['نسبة', 'توزيع', 'هامش', 'العائد النسبي'];
+const PER_SQM_MARKERS    = ['لكل م', 'التكلفة لكل', 'لكل متر', 'per sqm', 'per m'];
+function isDescriptorLabel(label, field) {
+  const l = label.toLowerCase();
+  if (DESCRIPTOR_MARKERS.some(m => l.includes(m))) return true;
+  if (AREA_FIELDS.has(field) && PER_SQM_MARKERS.some(m => l.includes(m))) return true;
+  return false;
 }
 
 // ─── CELL MAP ─────────────────────────────────────────────────────────────────
@@ -739,6 +755,134 @@ function parseAppSheet(wb, bySheet) {
   return app;
 }
 
+// ─── REVENUE TABLES PARSER ────────────────────────────────────────────────────
+// RASF-Summary studies hold per-component revenue assumptions as header-anchored
+// tables in the Study sheet: البيع المباشر / CAP-RATE-المخارجة / البيع على الخارطة
+// (side by side) and التأجير السنوي / التأجير اليومي. Anchor on "المكون" header
+// cells (section title one row above), then read the component grid relative to
+// them — position-independent, so it works wherever the tables sit.
+const REV_COMPONENT_PREFIXES = COMPONENT_TYPES.map(t => [t.key, t.prefixes[0], t.nameAr]);
+
+const REV_SECTIONS = [
+  { key: 'directSale', titles: ['البيع المباشر'], cols: [
+      ['عدد الوحدات','units'],['نسبة البيع','salePct'],['المساحات الصافية','nsa'],
+      ['مساحة الوحدة','unitSize'],['سعر بيع المتر','salePricePerSqm'],
+      ['قيمة الوحدة','unitValue'],['اجمالي المبيعات','totalSales'] ] },
+  { key: 'capRate', titles: ['CAP-RATE','معدل الرسملة','الرسملة'], cols: [
+      ['%','capRate'],['قيمة الوحدة','unitValueCap'],['الإجمالي','totalCapitalized'] ] },
+  { key: 'offPlan', titles: ['البيع على الخارطة'], cols: [
+      ['عدد الوحدات','units'],['نسبة البيع','salePct'],['سعر بيع المتر','salePricePerSqm'],
+      ['قيمة الوحدة','unitValue'],['اجمالي المبيعات','totalSales'] ] },
+  { key: 'annualRental', titles: ['التأجير السنوي'], cols: [
+      ['عدد الوحدات','units'],['مساحة الوحدة','unitSize'],['تأجير المتر','rentPerSqm'],
+      ['قيمة تأجير الوحدة','annualUnitRent'],['نسبة الإشغال','occupancy'],
+      ['إجمالي إيرادات التأجير','annualRevenue'],['التكاليف التشغيلية','opex'],
+      ['فترة استرداد','payback'],['العائد على التكلفة','returnOnCost'],
+      ['إجمالي الربح التشغيلي','operatingProfit'] ] },
+  { key: 'dailyRental', titles: ['التأجير اليومي'], cols: [
+      ['عدد الوحدات','units'],['نسبة الإشغال','occupancy'],['عدد الوحدات المشغولة','occupiedNights'],
+      ['متوسط السعر اليومي','dailyRate'],['الإيراد الفعلي','actualAnnualRevenue'],
+      ['نسبة إيرادات الأنشطة','extraActivitiesPct'],['إجمالي الإيرادات','totalRevenue'],
+      ['التكاليف التشغيلية','opex'] ] },
+];
+
+const REV_MONEY = new Set(['totalSales','unitValue','annualRevenue','opex','operatingProfit',
+  'totalRevenue','actualAnnualRevenue','annualUnitRent','unitValueCap','totalCapitalized']);
+const REV_PCT   = new Set(['salePct','occupancy','capRate','returnOnCost','extraActivitiesPct']);
+const REV_AREA  = new Set(['nsa','unitSize']);
+
+function normRevValue(field, raw) {
+  const n = normalizeNum(raw);
+  if (n == null) return null;
+  if (REV_MONEY.has(field)) return toMillions(n);            // → SAR millions
+  if (REV_PCT.has(field))   return toPercent(n);             // 0.8 → 80
+  if (REV_AREA.has(field))  return n > 0 ? Math.round(n) : null;
+  if (field === 'payback')  return n > 0 ? parseFloat(n.toFixed(2)) : null;
+  return n > 0 ? Math.round(n) : null;                       // units / rates / nights
+}
+
+function parseRevenueTables(bySheet, wb) {
+  const out = {};
+  for (const sheetName of wb.SheetNames) {
+    const cells = bySheet[sheetName] ?? [];
+    if (!cells.length) continue;
+    const idx = new Map(cells.map(c => [c.r + '_' + c.c, c]));
+    const at  = (r, c) => idx.get(r + '_' + c);
+
+    const anchors = cells.filter(c => typeof c.v === 'string' && c.v.trim().startsWith('المكون'));
+    for (const a of anchors) {
+      const title = String(at(a.r - 1, a.c)?.v ?? '');
+      const sec = REV_SECTIONS.find(s =>
+        s.titles.some(t => title.includes(t)) || (s.key === 'capRate' && /CAP/i.test(title)));
+      if (!sec || out[sec.key]) continue;
+
+      // map columns → field (stop at the next section's "المكون")
+      const colField = {};
+      const used = new Set();
+      for (let c = a.c; c < a.c + 18; c++) {
+        const h = String(at(a.r, c)?.v ?? '').trim();
+        if (c > a.c && h.startsWith('المكون')) break;
+        if (!h) continue;
+        for (const [kw, f] of sec.cols) {
+          if (h.includes(kw) && !used.has(f)) { colField[c] = f; used.add(f); break; }
+        }
+      }
+      if (!Object.keys(colField).length) continue;
+
+      // read component rows, then the total row
+      const perComponent = {};
+      let total = null;
+      for (let r = a.r + 1; r < a.r + 14; r++) {
+        const first = String(at(r, a.c)?.v ?? '').trim();
+        if (!first) continue;
+        const isTotal = first.includes('الإجمالي') || first.toLowerCase().includes('total');
+        const rec = {};
+        for (const [c, f] of Object.entries(colField)) {
+          const v = normRevValue(f, at(r, +c)?.v);
+          if (v != null) rec[f] = v;
+        }
+        if (isTotal) { if (Object.keys(rec).length) total = rec; break; }
+        const comp = REV_COMPONENT_PREFIXES.find(([, p]) => first.startsWith(p));
+        // keep only active components (real units or a money value — not bare %s)
+        const meaningful = (rec.units > 0) || Object.keys(rec).some(k => REV_MONEY.has(k));
+        if (comp && meaningful) perComponent[comp[0]] = { nameAr: comp[2], ...rec };
+      }
+      out[sec.key] = { total, perComponent };
+    }
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+// Merge the 5 revenue sections into one reliable per-component breakdown, and
+// derive the total physical unit count (max across sale/rental so a component
+// counted in both isn't double-added). Replaces the fuzzy Study-sheet scan.
+function buildComponentsFromRevenue(rb) {
+  const comps = {};
+  const add = (ck, nameAr, fields) => {
+    if (!comps[ck]) comps[ck] = { nameAr };
+    for (const [k, v] of Object.entries(fields)) if (v != null && comps[ck][k] == null) comps[ck][k] = v;
+  };
+  const sec = key => rb[key]?.perComponent || {};
+  for (const [ck, c] of Object.entries(sec('directSale')))
+    add(ck, c.nameAr, { saleUnits: c.units, nsa: c.nsa, unitSize: c.unitSize, salePricePerSqm: c.salePricePerSqm, totalSales: c.totalSales });
+  for (const [ck, c] of Object.entries(sec('offPlan')))
+    add(ck, c.nameAr, { offplanUnits: c.units, offplanSales: c.totalSales });
+  for (const [ck, c] of Object.entries(sec('capRate')))
+    add(ck, c.nameAr, { capRate: c.capRate, capitalizedValue: c.totalCapitalized });
+  for (const [ck, c] of Object.entries(sec('annualRental')))
+    add(ck, c.nameAr, { rentUnits: c.units, unitSize: c.unitSize, rentalRatePerSqm: c.rentPerSqm, annualOccupancy: c.occupancy, annualRentalRevenue: c.annualRevenue });
+  for (const [ck, c] of Object.entries(sec('dailyRental')))
+    add(ck, c.nameAr, { dailyUnits: c.units, occupancy: c.occupancy, dailyRatePerUnit: c.dailyRate, dailyAnnualRevenue: c.totalRevenue, operatingCostDaily: c.opex });
+
+  let unitsTotal = 0;
+  for (const c of Object.values(comps)) {
+    const physical = Math.max((c.saleUnits || 0) + (c.offplanUnits || 0), c.rentUnits || 0, c.dailyUnits || 0);
+    if (physical > 0) { c.unitCount = physical; unitsTotal += physical; }
+    if (c.nsa != null) c.gba = c.nsa;   // for useType (largest component by area)
+  }
+  return { components: comps, unitsTotal: unitsTotal || null };
+}
+
 // ─── MAIN EXPORT ──────────────────────────────────────────────────────────────
 export async function parseStudyFile(file) {
   const result = {
@@ -804,6 +948,9 @@ export async function parseStudyFile(file) {
     // per-component breakdown (array)
     componentBreakdown: {},
 
+    // revenue assumptions per type (بيع/تأجير/مخارجة), each { total, perComponent }
+    revenueBreakdown: null,
+
     rawHits: [],
   };
 
@@ -833,6 +980,10 @@ export async function parseStudyFile(file) {
           if (result[field] != null) continue;
           if (!matchesAny(label, keywords)) continue;
 
+          // Skip distribution/ratio & per-m² descriptor rows for numeric fields
+          if ((SAR_FIELDS.has(field) || AREA_FIELDS.has(field) || UNIT_FIELDS.has(field))
+              && isDescriptorLabel(label, field)) continue;
+
           // Text-only fields: tight search (adjacent col/row only) to avoid false matches
           const isTextField = field === 'projectName' || field === 'location' || field === 'projectType';
           const adj = getAdjacentValue(bySheet, sheetName, cell.r, cell.c, allKeywords,
@@ -861,7 +1012,7 @@ export async function parseStudyFile(file) {
           } else if (SAR_FIELDS.has(field)) {
             // Skip cells that are percentage-formatted (e.g. "18%" from capital structure)
             const displayStr = adj.w || String(raw);
-            if (displayStr.trim().endsWith('%')) break;
+            if (displayStr.trim().endsWith('%')) continue;
             const millions = toMillions(normalizeNum(raw));
             if (millions && millions > 0) result[field] = millions;
 
@@ -883,7 +1034,8 @@ export async function parseStudyFile(file) {
           }
 
           result.rawHits.push({ field, label, value: display, sheet: sheetName });
-          break;
+          // no break: one cell (e.g. "تكلفة اجمالي المشروع") may legitimately feed
+          // several fields (investmentM + totalCost).
         }
       }
     }
@@ -897,6 +1049,19 @@ export async function parseStudyFile(file) {
 
     // ── Third pass: financing structure items ─────────────────────────────────
     result.financing = parseFinancingItems(bySheet, wb, allKeywords);
+
+    // ── Fourth pass: revenue assumptions per type (per-component tables) ───────
+    result.revenueBreakdown = parseRevenueTables(bySheet, wb);
+
+    // Non-APP studies: derive a reliable componentBreakdown + total units from the
+    // revenue tables (the fuzzy Study-sheet scan above produces phantom values).
+    if (!appData && result.revenueBreakdown) {
+      const merged = buildComponentsFromRevenue(result.revenueBreakdown);
+      if (Object.keys(merged.components).length) {
+        result.componentBreakdown = merged.components;
+        if (result.units == null) result.units = merged.unitsTotal;
+      }
+    }
 
     // If APP sheet was used, unitsSold must never be auto-filled (it represents
     // units already sold as progress, not the study's sale plan)

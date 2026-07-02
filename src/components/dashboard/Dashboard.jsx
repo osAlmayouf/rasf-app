@@ -10,10 +10,13 @@ import RecentNotes      from './RecentNotes';
 import SARSymbol        from '../common/SARSymbol';
 import PipelineDashboard from '../pipeline/PipelineDashboard';
 import PipelinePage     from '../pipeline/PipelinePage';
+import NewProjectModal  from '../common/NewProjectModal';
+import { Plus }        from 'lucide-react';
 
 export default function Dashboard() {
   const { t, lang, portfolioService, displayMode } = useApp();
   const [activeTab, setActiveTab] = useState('active');
+  const [showNewModal, setShowNewModal] = useState(false);
 
   const kpis        = portfolioService.getKPIs();
   const isAr        = lang === 'ar';
@@ -84,29 +87,55 @@ export default function Dashboard() {
 
   return (
     <div>
-      {/* Tab switcher */}
-      <div
-        style={{
-          display: 'inline-flex', gap: 2,
-          background: 'var(--bg-card)', border: '1px solid var(--border)',
-          borderRadius: 10, padding: 4, marginBottom: 20,
-        }}
-      >
-        {TABS.map(tab => (
+      {/* Tab switcher + new project button */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <div
+          style={{
+            display: 'inline-flex', gap: 2,
+            background: 'var(--bg-card)', border: '1px solid var(--border)',
+            borderRadius: 10, padding: 4,
+          }}
+        >
+          {TABS.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              style={{
+                padding: '6px 20px', borderRadius: 7, fontSize: 13, fontWeight: 600,
+                border: 'none', cursor: 'pointer', transition: 'all .18s',
+                background: activeTab === tab.key ? 'var(--rasf-primary)' : 'transparent',
+                color: activeTab === tab.key ? 'var(--bg-app)' : 'var(--text-muted)',
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === 'pipeline' && (
           <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
+            onClick={() => setShowNewModal(true)}
             style={{
-              padding: '6px 20px', borderRadius: 7, fontSize: 13, fontWeight: 600,
-              border: 'none', cursor: 'pointer', transition: 'all .18s',
-              background: activeTab === tab.key ? 'var(--rasf-primary)' : 'transparent',
-              color: activeTab === tab.key ? 'var(--bg-app)' : 'var(--text-muted)',
+              background: 'var(--rasf-primary)', color: 'var(--bg-app)',
+              borderRadius: 8, padding: '8px 18px', fontSize: 13, fontWeight: 800,
+              cursor: 'pointer', border: 'none', transition: 'opacity .18s',
+              display: 'flex', alignItems: 'center', gap: 6,
             }}
+            onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
+            onMouseLeave={e => e.currentTarget.style.opacity = '1'}
           >
-            {tab.label}
+            <Plus size={14} />
+            {t('tbNew')}
           </button>
-        ))}
+        )}
       </div>
+
+      {showNewModal && (
+        <NewProjectModal
+          onClose={() => setShowNewModal(false)}
+          defaultStatus="pipeline"
+        />
+      )}
 
       {/* Tab content */}
       {activeTab === 'active' ? (

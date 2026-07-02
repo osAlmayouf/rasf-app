@@ -21,7 +21,7 @@ export const ProjectType = Object.freeze({
 });
 
 export class Project extends Entity {
-  constructor({ id, name, location, subtitle, roi, irr, roeAnnual, progress, status, type, totalInvestment, investmentM, deliveryDate, startDate, opportunityDate, lastUpdated, area, farValue, aboveGradeGBA, belowGradeGBA, totalGBA, nsaArea, units, unitsSold, avgUnitPrice, moic, paybackYears, phases, milestones, costs, cashFlows, investors, components, componentBreakdown, funding, equity, financing }) {
+  constructor({ id, name, location, subtitle, roi, irr, roeAnnual, progress, status, type, totalInvestment, investmentM, deliveryDate, startDate, opportunityDate, lastUpdated, area, farValue, aboveGradeGBA, belowGradeGBA, totalGBA, nsaArea, units, unitsSold, avgUnitPrice, moic, paybackYears, phases, milestones, costs, cashFlows, investors, components, componentBreakdown, funding, equity, financing, scenarios }) {
     super(id);
     this.name              = name;
     this.subtitle          = subtitle ?? '';
@@ -61,11 +61,16 @@ export class Project extends Entity {
     this.funding           = funding         ?? {};
     this.equity            = equity          ?? {};
     this.financing         = financing       ?? null;
+    // مقترحات/سيناريوهات الاستخدام — كل مقترح نموذج تقني + مالي مستقل
+    this.scenarios         = scenarios       ?? [];
   }
 
   get isActive()    { return this.status === ProjectStatus.ACTIVE; }
   get isComplete()  { return this.progress >= 100; }
   get netProfit()   { return this.costs.netProfit ?? (this.costs.totalRevenue - this.costs.totalCost); }
+
+  // المقترح المعتمد (أفضل استخدام) — تنعكس أرقامه على المشروع واللوحات
+  get selectedScenario() { return this.scenarios.find(s => s.selected) ?? null; }
 
   getStatusColor() {
     const map = {

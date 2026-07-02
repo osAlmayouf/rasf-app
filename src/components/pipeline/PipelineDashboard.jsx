@@ -1,5 +1,5 @@
 import { Bar } from 'react-chartjs-2';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale, LinearScale, BarElement, Tooltip, Legend,
@@ -10,6 +10,122 @@ import { fmtSARMode, addUnit } from '../../utils/fmtMode';
 import KPICard    from '../dashboard/KPICard';
 import GlassCard  from '../common/GlassCard';
 import SARSymbol  from '../common/SARSymbol';
+
+function fmtDate(iso, lang) {
+  const d = new Date(iso);
+  const locale = lang === 'ar' ? 'ar-SA-u-nu-latn' : 'en-US';
+  return d.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function PipelineNotesPanel({ projects }) {
+  const { lang, notesService, setPage, setSelectedProjectId, setOuterProjectTab } = useApp();
+  const [notesByProject, setNotesByProject] = useState({});
+
+  useEffect(() => {
+    if (!projects.length) return;
+    Promise.all(
+      projects.map(p =>
+        notesService.getNotesForProject(p.id).then(notes => ({ id: p.id, notes }))
+      )
+    ).then(results => {
+      const map = {};
+      results.forEach(({ id, notes }) => {
+        const active = notes.filter(n => !n.deletedFromPortfolio).slice(0, 3);
+        if (active.length > 0) map[id] = active;
+      });
+      setNotesByProject(map);
+    });
+  }, [projects.map(p => p.id).join(',')]); // eslint-disable-line
+
+  const projectsWithNotes = projects.filter(p => notesByProject[p.id]?.length > 0);
+  if (projectsWithNotes.length === 0) return null;
+
+  const openProject = (id) => {
+    setSelectedProjectId(id);
+    setOuterProjectTab('pipeline');
+    setPage('project');
+  };
+
+  return (
+    <GlassCard>
+      <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-hi)', marginBottom: 16 }}>
+        {lang === 'ar' ? 'آخر الملاحظات — المشاريع تحت الدراسة' : 'Latest Notes — Pipeline Projects'}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
+        {projectsWithNotes.map(project => (
+          <div
+            key={project.id}
+            style={{
+              background: 'var(--bg-card-strong)',
+              border: '1px solid var(--border-soft)',
+              borderRadius: 14,
+              padding: 14,
+            }}
+          >
+            {/* Project header */}
+            <button
+              onClick={() => openProject(project.id)}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                width: '100%', background: 'none', border: 'none', cursor: 'pointer',
+                marginBottom: 10, padding: 0,
+              }}
+            >
+              <span style={{ color: 'var(--rasf-primary)', fontWeight: 700, fontSize: 13 }}>
+                {project.name}
+              </span>
+              <span style={{
+                fontSize: 10, color: 'var(--text-faint)',
+                background: 'var(--bg-subtle)', border: '1px solid var(--border-faint)',
+                borderRadius: 5, padding: '1px 8px',
+              }}>
+                {lang === 'ar' ? 'عرض المشروع ←' : 'View →'}
+              </span>
+            </button>
+
+            {/* Notes list */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {notesByProject[project.id].map(note => (
+                <div
+                  key={note.id}
+                  style={{
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-faint)',
+                    borderRadius: 9,
+                    padding: '9px 12px',
+                  }}
+                >
+                  <p style={{
+                    color: 'var(--text-hi)', fontSize: 12, lineHeight: 1.65,
+                    margin: 0,
+                    display: '-webkit-box', WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                    textAlign: 'right',
+                  }}>
+                    {note.text}
+                  </p>
+                  <div style={{ marginTop: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>
+                      {fmtDate(note.createdAt, lang)}
+                    </span>
+                    <span style={{
+                      fontSize: 10, color: 'var(--rasf-primary)', fontWeight: 600,
+                      background: 'var(--rasf-primary-dim)',
+                      border: '1px solid var(--border-tag-warm)',
+                      borderRadius: 5, padding: '1px 7px',
+                    }}>
+                      {note.addedBy}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </GlassCard>
+  );
+}
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
@@ -168,16 +284,6 @@ export default function PipelineDashboard() {
     }],
   };
 
-  const irrData = {
-    labels,
-    datasets: [{
-      data: projects.map(p => p.irr || 0),
-      backgroundColor: '#6B5545',
-      borderRadius: 5,
-      barThickness: 22,
-    }],
-  };
-
   const openProject = (id) => {
     setSelectedProjectId(id);
     setPage('project');
@@ -218,94 +324,84 @@ export default function PipelineDashboard() {
         </GlassCard>
 
         <GlassCard>
-          <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-hi)', marginBottom: 16 }}>
-            {lang === 'ar' ? 'مقارنة معدل العائد الداخلي IRR (%)' : 'IRR Comparison (%)'}
+          {/* Header row */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16, gap: 16 }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-hi)', marginBottom: 4 }}>
+                {lang === 'ar' ? 'المشاريع المدروسة حسب الشهر' : 'Projects Studied by Month'}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                {lang === 'ar'
+                  ? `${yearTotal} مشروع تم تسجيله في ${selectedYear} — تحت الدراسة والمؤرشفة فقط`
+                  : `${yearTotal} project(s) recorded in ${selectedYear} — pipeline & archived only`}
+              </div>
+            </div>
+
+            {/* Year selector */}
+            <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              {availableYears.map(yr => (
+                <button
+                  key={yr}
+                  onClick={() => setSelectedYear(yr)}
+                  style={{
+                    padding: '5px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700,
+                    border: `1px solid ${selectedYear === yr ? 'var(--rasf-primary)' : 'var(--border)'}`,
+                    background: selectedYear === yr ? 'var(--rasf-primary-dim)' : 'var(--bg-app)',
+                    color: selectedYear === yr ? 'var(--rasf-primary)' : 'var(--text-muted)',
+                    cursor: 'pointer', transition: 'all .15s',
+                  }}
+                >
+                  {yr}
+                </button>
+              ))}
+            </div>
           </div>
-          <div style={{ height: barHeight }}>
-            <Bar data={irrData} options={BAR_OPTS('%')} />
+
+          <div style={{ height: Math.max(180, barHeight) }}>
+            <Bar
+              data={oppChartData}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    display: true,
+                    position: 'top',
+                    align: 'end',
+                    labels: { color: '#8A7D74', font: { size: 10 }, boxWidth: 10, padding: 12 },
+                  },
+                  tooltip: {
+                    callbacks: {
+                      footer: (items) => {
+                        const total = items.reduce((s, i) => s + i.parsed.y, 0);
+                        return total > 0
+                          ? (lang === 'ar' ? `الإجمالي: ${total} مشروع` : `Total: ${total}`)
+                          : '';
+                      },
+                    },
+                  },
+                },
+                scales: {
+                  x: {
+                    stacked: true,
+                    grid: { display: false },
+                    ticks: { color: '#8A7D74', font: { size: 10 } },
+                    border: { display: false },
+                  },
+                  y: {
+                    stacked: true,
+                    grid: { color: 'rgba(160,128,112,0.08)' },
+                    ticks: { color: '#8A7D74', font: { size: 10 }, stepSize: 1, precision: 0 },
+                    border: { display: false },
+                    beginAtZero: true,
+                  },
+                },
+              }}
+            />
           </div>
         </GlassCard>
 
       </div>
-
-      {/* Opportunity timeline chart */}
-      <GlassCard>
-        {/* Header row */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16, gap: 16 }}>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-hi)', marginBottom: 4 }}>
-              {lang === 'ar' ? 'المشاريع المدروسة حسب الشهر' : 'Projects Studied by Month'}
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-              {lang === 'ar'
-                ? `${yearTotal} مشروع تم تسجيله في ${selectedYear} — تحت الدراسة والمؤرشفة فقط`
-                : `${yearTotal} project(s) recorded in ${selectedYear} — pipeline & archived only`}
-            </div>
-          </div>
-
-          {/* Year selector */}
-          <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            {availableYears.map(yr => (
-              <button
-                key={yr}
-                onClick={() => setSelectedYear(yr)}
-                style={{
-                  padding: '5px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700,
-                  border: `1px solid ${selectedYear === yr ? 'var(--rasf-primary)' : 'var(--border)'}`,
-                  background: selectedYear === yr ? 'var(--rasf-primary-dim)' : 'var(--bg-app)',
-                  color: selectedYear === yr ? 'var(--rasf-primary)' : 'var(--text-muted)',
-                  cursor: 'pointer', transition: 'all .15s',
-                }}
-              >
-                {yr}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div style={{ height: 220 }}>
-          <Bar
-            data={oppChartData}
-            options={{
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: {
-                  display: true,
-                  position: 'top',
-                  align: 'end',
-                  labels: { color: '#8A7D74', font: { size: 10 }, boxWidth: 10, padding: 12 },
-                },
-                tooltip: {
-                  callbacks: {
-                    footer: (items) => {
-                      const total = items.reduce((s, i) => s + i.parsed.y, 0);
-                      return total > 0
-                        ? (lang === 'ar' ? `الإجمالي: ${total} مشروع` : `Total: ${total}`)
-                        : '';
-                    },
-                  },
-                },
-              },
-              scales: {
-                x: {
-                  stacked: true,
-                  grid: { display: false },
-                  ticks: { color: '#8A7D74', font: { size: 10 } },
-                  border: { display: false },
-                },
-                y: {
-                  stacked: true,
-                  grid: { color: 'rgba(160,128,112,0.08)' },
-                  ticks: { color: '#8A7D74', font: { size: 10 }, stepSize: 1, precision: 0 },
-                  border: { display: false },
-                  beginAtZero: true,
-                },
-              },
-            }}
-          />
-        </div>
-      </GlassCard>
 
       {/* Detailed comparison table */}
       <GlassCard>
@@ -411,6 +507,7 @@ export default function PipelineDashboard() {
           </table>
         </div>
       </GlassCard>
+
 
     </div>
   );

@@ -36,7 +36,7 @@ function saveCompleted(projectId, value) {
 
 // خط سير المشروع
 export default function ProjectLifecycle({ projectId, status }) {
-  const { t } = useApp();
+  const { t, portfolioService, refreshPortfolio } = useApp();
 
   const isPipeline  = status === 'pipeline' || status === ProjectStatus.PIPELINE;
   const PHASE_KEYS  = isPipeline ? STUDY_PHASES : ACTIVE_PHASES;
@@ -63,6 +63,9 @@ export default function ProjectLifecycle({ projectId, status }) {
     setCompleted(next);
     saveCompleted(projectId, next);   // ← persist across navigations & refreshes
     setPendingIdx(null);
+    // اختم "آخر تحديث" على المشروع عند تعديل خط سير العمل
+    portfolioService.updateProject(projectId, {});
+    refreshPortfolio();
   };
 
   return (

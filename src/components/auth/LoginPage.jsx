@@ -42,7 +42,7 @@ export default function LoginPage() {
               رصف للاستثمار
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>
-              نظام إدارة الأعمال المؤسسية
+              نظام تطوير الأعمال
             </div>
           </div>
         </div>

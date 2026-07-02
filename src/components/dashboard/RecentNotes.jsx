@@ -11,15 +11,23 @@ function fmtDateTime(iso, lang) {
 }
 
 export default function RecentNotes() {
-  const { t, lang, notesService, portfolioService, setPage, setSelectedProjectId } = useApp();
+  const { t, lang, notesService, portfolioService, setPage, setSelectedProjectId, setOuterProjectTab } = useApp();
   const [notes, setNotes] = useState([]);
 
   useEffect(() => {
-    notesService.getAllNotes().then(setNotes);
-  }, [notesService]);
+    notesService.getAllNotes().then(allNotes => {
+      const portfolioNotes = allNotes.filter(note => {
+        if (note.deletedFromPortfolio) return false;
+        const proj = portfolioService?.getProject(note.projectId);
+        return proj && proj.status !== 'pipeline' && proj.status !== 'archived';
+      });
+      setNotes(portfolioNotes);
+    });
+  }, [notesService, portfolioService]);
 
   const handleClick = (note) => {
     setSelectedProjectId(note.projectId);
+    setOuterProjectTab('active');
     setPage('project');
   };
 

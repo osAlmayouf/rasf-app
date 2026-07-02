@@ -42,6 +42,7 @@ export class SupabaseDataService {
         supabase.from('projects').upsert(
           portfolioRaw.projects.map((p, i) => ({
             id:         p.id,
+            name:       p.name,
             data:       p,
             status:     p.status === 'pipeline' ? 'pipeline' : 'portfolio',
             sort_order: i,
@@ -74,6 +75,7 @@ export class SupabaseDataService {
       supabase.from('projects').upsert(
         seed.projects.map((p, i) => ({
           id:         p.id,
+          name:       p.name,
           data:       p,
           status:     p.status === 'pipeline' ? 'pipeline' : 'portfolio',
           sort_order: i,

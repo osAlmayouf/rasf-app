@@ -1,25 +1,10 @@
 import { Entity } from './Entity';
 import { Project } from './Project';
 import { fmtK } from '../utils/fmt';
+import { progressFromPhases, defaultPhases } from '../utils/phaseProgress';
 
-// أوزان البنود الخمسة لكل نوع مشروع
-const PHASE_WEIGHTS = {
-  residential:        { ph1: 5, ph2: 10, ph3: 20, ph4: 55, ph5: 10 },
-  commercial:         { ph1: 5, ph2: 12, ph3: 18, ph4: 55, ph5: 10 },
-  industrial:         { ph1: 8, ph2: 15, ph3: 25, ph4: 42, ph5: 10 },
-  infrastructure:     { ph1: 10, ph2: 20, ph3: 35, ph4: 25, ph5: 10 },
-  luxury_residential: { ph1: 5, ph2: 10, ph3: 20, ph4: 55, ph5: 10 },
-  mixed:              { ph1: 5, ph2: 12, ph3: 18, ph4: 55, ph5: 10 },
-  hotel:              { ph1: 5, ph2: 12, ph3: 18, ph4: 55, ph5: 10 },
-};
-
-// يحسب نسبة الإنجاز من المراحل وأوزان نوع المشروع
-function calcProgressFromPhases(type, phases) {
-  if (!phases?.length) return null;
-  const w = PHASE_WEIGHTS[type] ?? PHASE_WEIGHTS.commercial;
-  const total = phases.reduce((sum, p) => sum + ((p.progress ?? 0) * (w[p.key] ?? 0)) / 100, 0);
-  return parseFloat(total.toFixed(1));
-}
+// تاريخ اليوم بصيغة YYYY-MM-DD — يُختم في "آخر تحديث" عند أي تعديل
+const today = () => new Date().toISOString().slice(0, 10);
 
 export class Portfolio extends Entity {
   constructor({ id = 'portfolio', currency = 'SAR', quarterGrowth, projects = [] }) {
@@ -28,8 +13,8 @@ export class Portfolio extends Entity {
     this.quarterGrowth = quarterGrowth;
     this._projects     = projects.map(p => {
       const project = new Project(p);
-      // حساب تلقائي للإنجاز من المراحل عند التحميل
-      const calc = calcProgressFromPhases(project.type, project.phases);
+      // حساب تلقائي للإنجاز من حالات البنود عند التحميل
+      const calc = progressFromPhases(project.phases);
       if (calc !== null) project.progress = calc;
       return project;
     });
@@ -90,7 +75,7 @@ export class Portfolio extends Entity {
 
   addProject(projectData) {
     const project = new Project(projectData);
-    const calc = calcProgressFromPhases(project.type, project.phases);
+    const calc = progressFromPhases(project.phases);
     if (calc !== null) project.progress = calc;
     this._projects.push(project);
     return project;
@@ -112,12 +97,15 @@ export class Portfolio extends Entity {
       'area', 'farValue', 'aboveGradeGBA', 'belowGradeGBA',
       'totalGBA', 'nsaArea', 'units', 'unitsSold', 'avgUnitPrice',
       'componentBreakdown', 'investors', 'cashFlows',
-      'lastUpdated',
+      'lastUpdated', 'scenarios',
     ];
 
     SIMPLE_FIELDS.forEach(field => {
       if (data[field] !== undefined) project[field] = data[field];
     });
+
+    // اختم "آخر تحديث" تلقائياً عند أي تعديل (ما لم يُمرَّر تاريخ صراحةً)
+    project.lastUpdated = data.lastUpdated ?? today();
 
     // Location also updates subtitle
     if (data.location !== undefined) {
@@ -145,19 +133,98 @@ export class Portfolio extends Entity {
     }
   }
 
+  // ── Scenarios (المقترحات) ──────────────────────────────────────────────
+  addScenario(projectId, scenarioData) {
+    const project = this._projects.find(p => p.id === projectId);
+    if (!project) return null;
+    const scenario = {
+      id: `scn_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      selected: false,
+      createdAt: new Date().toISOString(),
+      ...scenarioData,
+    };
+    project.scenarios = [...(project.scenarios ?? []), scenario];
+    // أول مقترح يُعتمد تلقائياً
+    if (project.scenarios.length === 1) this.selectScenario(projectId, scenario.id);
+    project.lastUpdated = today();
+    return project.scenarios.find(s => s.id === scenario.id);
+  }
+
+  updateScenario(projectId, scenarioId, data) {
+    const project = this._projects.find(p => p.id === projectId);
+    if (!project) return;
+    project.scenarios = (project.scenarios ?? []).map(s =>
+      s.id === scenarioId ? { ...s, ...data } : s
+    );
+    // لو المقترح المُحدّث هو المعتمد، أعِد عكس أرقامه على المشروع
+    if (project.scenarios.find(s => s.id === scenarioId)?.selected) {
+      this.#applyScenarioToProject(project, scenarioId);
+    }
+    project.lastUpdated = today();
+  }
+
+  removeScenario(projectId, scenarioId) {
+    const project = this._projects.find(p => p.id === projectId);
+    if (!project) return;
+    const wasSelected = project.scenarios?.find(s => s.id === scenarioId)?.selected;
+    project.scenarios = (project.scenarios ?? []).filter(s => s.id !== scenarioId);
+    // لو حُذف المعتمد، اعتمد الأول المتبقي
+    if (wasSelected && project.scenarios.length > 0) {
+      this.selectScenario(projectId, project.scenarios[0].id);
+    }
+    project.lastUpdated = today();
+  }
+
+  selectScenario(projectId, scenarioId) {
+    const project = this._projects.find(p => p.id === projectId);
+    if (!project) return;
+    project.scenarios = (project.scenarios ?? []).map(s => ({ ...s, selected: s.id === scenarioId }));
+    this.#applyScenarioToProject(project, scenarioId);
+    project.lastUpdated = today();
+  }
+
+  // ينسخ أرقام المقترح المعتمد إلى حقول المشروع العليا (للوحات والمقارنات)
+  #applyScenarioToProject(project, scenarioId) {
+    const s = project.scenarios.find(x => x.id === scenarioId);
+    if (!s) return;
+    const num = (v) => (v === '' || v === null || v === undefined ? undefined : Number(v));
+    const map = {
+      investmentM: num(s.investmentM ?? s.totalCost),
+      irr: num(s.irr), roi: num(s.roi), roeAnnual: num(s.roeAnnual),
+      moic: num(s.moic), paybackYears: num(s.paybackYears),
+      farValue: num(s.farValue), totalGBA: s.totalGBA, units: num(s.units),
+    };
+    Object.entries(map).forEach(([k, v]) => { if (v !== undefined) project[k] = v; });
+    if (s.totalCost != null || s.totalRevenue != null) {
+      const totalCost = num(s.totalCost), totalRevenue = num(s.totalRevenue);
+      project.costs = {
+        ...(project.costs ?? {}),
+        ...(totalCost != null    ? { totalCost }    : {}),
+        ...(totalRevenue != null ? { totalRevenue } : {}),
+        ...(totalCost != null && totalRevenue != null ? { netProfit: totalRevenue - totalCost } : {}),
+      };
+    }
+  }
+
   archiveProject(id) {
     const project = this._projects.find(p => p.id === id);
-    if (project) project.status = 'archived';
+    if (project) { project.status = 'archived'; project.lastUpdated = today(); }
   }
 
   promoteProject(id) {
     const project = this._projects.find(p => p.id === id);
-    if (project && project.status === 'pipeline') project.status = 'planning';
+    if (project && project.status === 'pipeline') {
+      project.status = 'planning';
+      // مشروع قائم جديد يبدأ ببنود المشروع الخمسة (كلها لم تبدأ)
+      project.phases      = defaultPhases();
+      project.progress    = 0;
+      project.lastUpdated = today();
+    }
   }
 
   restoreProject(id) {
     const project = this._projects.find(p => p.id === id);
-    if (project && project.status === 'archived') project.status = 'pipeline';
+    if (project && project.status === 'archived') { project.status = 'pipeline'; project.lastUpdated = today(); }
   }
 
   getSectorDistribution() {

@@ -29,6 +29,12 @@ export class PortfolioService {
     this.#portfolio.updateProject(id, data);
   }
 
+  // ── Scenarios (المقترحات) ──────────────────────────────────────────────
+  addScenario(projectId, data)              { return this.#portfolio.addScenario(projectId, data); }
+  updateScenario(projectId, scenarioId, d)  { this.#portfolio.updateScenario(projectId, scenarioId, d); }
+  removeScenario(projectId, scenarioId)     { this.#portfolio.removeScenario(projectId, scenarioId); }
+  selectScenario(projectId, scenarioId)     { this.#portfolio.selectScenario(projectId, scenarioId); }
+
   getKPIs() {
     const p = this.#portfolio;
     const projects    = p.portfolioProjects;

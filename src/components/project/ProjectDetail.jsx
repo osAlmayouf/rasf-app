@@ -6,24 +6,24 @@ import Tag            from '../common/Tag';
 import { X, ArrowUp, Archive } from 'lucide-react';
 import SARNum         from '../common/SARNum';
 import ProjectBoard   from './tabs/ProjectBoard';
+import ProjectScenarios  from './tabs/ProjectScenarios';
 import FinancialAnalysis from './tabs/FinancialAnalysis';
 import ProjectComponents from './tabs/ProjectComponents';
 import FundingStructure  from './tabs/FundingStructure';
-import CashFlows         from './tabs/CashFlows';
 import ProjectFiles      from './tabs/ProjectFiles';
 import Distributions     from './tabs/Distributions';
 import Revenue           from './tabs/Revenue';
 import ProjectLifecycle  from './ProjectLifecycle';
 
 const TABS = [
-  { id: 'board',  labelKey: 'tbBoard',  Component: ProjectBoard       },
-  { id: 'fin',    labelKey: 'tbFin',    Component: FinancialAnalysis  },
-  { id: 'fund',   labelKey: 'tbFund',   Component: FundingStructure   },
-  { id: 'dist',   labelKey: 'tbDist',   Component: Distributions      },
+  { id: 'board',     labelKey: 'tbBoard',     Component: ProjectBoard       },
+  { id: 'scenarios', labelKey: 'tbScenarios', Component: ProjectScenarios   },
+  { id: 'fin',       labelKey: 'tbFin',       Component: FinancialAnalysis  },
+  { id: 'fund',    labelKey: 'tbFund',    Component: FundingStructure   },
+  { id: 'dist',    labelKey: 'tbDist',    Component: Distributions      },
   { id: 'revenue', labelKey: 'tbRevenue', Component: Revenue            },
-  { id: 'comp',   labelKey: 'tbComp',   Component: ProjectComponents  },
-  { id: 'cash',   labelKey: 'tbCash',   Component: CashFlows          },
-  { id: 'files',  labelKey: 'tbFiles2', Component: ProjectFiles       },
+  { id: 'comp',    labelKey: 'tbComp',    Component: ProjectComponents  },
+  { id: 'files',   labelKey: 'tbFiles2',  Component: ProjectFiles       },
 ];
 
 const STATUS_VARIANT   = { pipeline: 'blue', financing: 'amber', active: 'green', planning: 'blue', completed: 'purple' };
@@ -77,24 +77,6 @@ export default function ProjectDetail() {
     if (editName.trim()) {
       const updates = { name: editName.trim(), location: editLocation.trim(), type: editType };
 
-      // إذا تغيّر النوع، أعد حساب نسبة الإنجاز بأوزان النوع الجديد
-      if (editType !== project.type && project.phases?.length) {
-        const weights = {
-          residential:        { ph1: 5, ph2: 10, ph3: 20, ph4: 55, ph5: 10 },
-          commercial:         { ph1: 5, ph2: 12, ph3: 18, ph4: 55, ph5: 10 },
-          industrial:         { ph1: 8, ph2: 15, ph3: 25, ph4: 42, ph5: 10 },
-          infrastructure:     { ph1: 10, ph2: 20, ph3: 35, ph4: 25, ph5: 10 },
-        };
-        const w = weights[editType] ?? weights.commercial;
-        const pcts = Object.fromEntries(project.phases.map(p => [p.key, p.progress]));
-        const newProgress = parseFloat(
-          ['ph1','ph2','ph3','ph4','ph5']
-            .reduce((sum, k) => sum + ((pcts[k] ?? 0) * (w[k] ?? 0)) / 100, 0)
-            .toFixed(1)
-        );
-        updates.progress = newProgress;
-      }
-
       portfolioService.updateProject(project.id, updates);
       refreshPortfolio();
     }
@@ -135,6 +117,7 @@ export default function ProjectDetail() {
   ];
 
   const handleOuterTabSwitch = (key) => {
+    setActiveTab('board');
     if (key === 'pipeline' && !isPipeline) {
       const first = pipelineProjects[0];
       if (first) setSelectedProjectId(first.id);
