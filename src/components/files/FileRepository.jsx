@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useApp }       from '../../contexts/useApp';
 import { useAuth }      from '../../contexts/useAuth';
 import { FileCategory } from '../../models/FileDocument';
+import { applyStudyFileToProject, isStudyFile } from '../../utils/applyStudyExtraction';
 import FileViewer       from '../common/FileViewer';
 import Tag              from '../common/Tag';
 import { FolderOpen, Eye, Download, Upload, X, Trash2 } from 'lucide-react';
@@ -133,7 +134,7 @@ function UploadModal({ file, projects, onConfirm, onCancel, t }) {
 }
 
 export default function FileRepository() {
-  const { t, fileService, portfolioService } = useApp();
+  const { t, fileService, portfolioService, refreshPortfolio } = useApp();
   const { profile, isDepAdmin }              = useAuth();
   const [activeCat,       setActiveCat]       = useState('all');
   const [files,           setFiles]           = useState([]);
@@ -162,6 +163,20 @@ export default function FileRepository() {
   };
 
   const handleConfirmUpload = async ({ projectId, projectName, category }) => {
+    // 1) Extract + apply the study numbers first — pure client-side parsing, must
+    //    not depend on the storage upload (which fails if Supabase is down).
+    if (category === FileCategory.FINANCIAL && isStudyFile(pendingFile.name)) {
+      const project = projects.find(p => p.id === projectId);
+      if (project) {
+        try {
+          const res = await applyStudyFileToProject(pendingFile, project, portfolioService);
+          if (res.success) refreshPortfolio();
+        } catch (err) {
+          console.error('[Parse] failed', err);
+        }
+      }
+    }
+    // 2) Upload the file to storage — independent; failure here won't block extraction.
     try {
       await fileService.upload(pendingFile, projectId, projectName, category, profile);
       await fetchFiles();

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useApp }       from '../../../contexts/useApp';
 import { useAuth }      from '../../../contexts/useAuth';
 import { FileCategory } from '../../../models/FileDocument';
-import { parseStudyFile } from '../../../utils/studyParser';
+import { applyStudyFileToProject, isStudyFile } from '../../../utils/applyStudyExtraction';
 import FileViewer       from '../../common/FileViewer';
 import Tag              from '../../common/Tag';
 import { TrendingUp, FileText, FileCheck, Landmark, Sparkles, Eye, Download, Loader, Trash2 } from 'lucide-react';
@@ -44,24 +44,28 @@ export default function ProjectFiles({ project }) {
 
     setUploading(true);
     setParseResult(null);
+
+    // 1) Extract + apply the study numbers FIRST — this is pure client-side parsing
+    //    and must not depend on the storage upload (which fails if Supabase is down).
+    if (category === FileCategory.FINANCIAL && isStudyFile(file.name)) {
+      setParsing(true);
+      try {
+        const res = await applyStudyFileToProject(file, project, portfolioService);
+        if (res.success) {
+          refreshPortfolio();
+          setParseResult({ success: true, data: res.data });
+        }
+      } catch (err) {
+        setParseResult({ success: false, error: err.message });
+      } finally {
+        setParsing(false);
+      }
+    }
+
+    // 2) Upload the file to storage — independent; a failure here won't block extraction.
     try {
       await fileService.upload(file, project.id, project.name, category, profile);
       await fetchFiles();
-
-      if (category === FileCategory.FINANCIAL && /\.(xlsx|xls|xlsm|xlsb)$/i.test(file.name)) {
-        setParsing(true);
-        try {
-          const data = await parseStudyFile(file);
-          if (data && Object.keys(data).length > 0) {
-            applyExtractedData(data);
-            setParseResult({ success: true, data });
-          }
-        } catch (err) {
-          setParseResult({ success: false, error: err.message });
-        } finally {
-          setParsing(false);
-        }
-      }
     } catch (err) {
       console.error('[Upload] failed', err);
     } finally {
@@ -89,52 +93,6 @@ export default function ProjectFiles({ project }) {
     } finally {
       setConfirmDeleteId(null);
     }
-  };
-
-  const applyExtractedData = (ex) => {
-    const inv = ex.investmentM ?? 0;
-    const compBreakdown = ex.componentBreakdown
-      ? Object.entries(ex.componentBreakdown).map(([key, data]) => ({ key, ...data }))
-      : project.componentBreakdown ?? [];
-    portfolioService.updateProject(project.id, {
-      location:       ex.location      || project.location,
-      deliveryDate:   ex.deliveryDate  || project.deliveryDate,
-      investmentM:    inv || project.investmentM,
-      totalInvestment: inv >= 1000 ? `${(inv/1000).toFixed(1)}B` : inv > 0 ? `${inv}M` : project.totalInvestment,
-      irr:            ex.irr           ?? project.irr,
-      roi:            ex.roi           ?? project.roi,
-      roeAnnual:      ex.roeAnnual     ?? project.roeAnnual,
-      area:           ex.area          || project.area,
-      farValue:       ex.farValue      ?? project.farValue,
-      aboveGradeGBA:  ex.aboveGradeGBA || project.aboveGradeGBA,
-      belowGradeGBA:  ex.belowGradeGBA || project.belowGradeGBA,
-      totalGBA:       ex.totalGBA      || project.totalGBA,
-      nsaArea:        ex.nsaArea       || project.nsaArea,
-      units:          ex.units         ?? project.units,
-      avgUnitPrice:   ex.avgUnitPrice  ?? project.avgUnitPrice,
-      moic:           ex.moic ? `${ex.moic}x` : project.moic,
-      paybackYears:   ex.paybackYears  ?? project.paybackYears,
-      componentBreakdown: compBreakdown,
-      costs: {
-        totalRevenue:        ex.totalRevenue        ?? project.costs?.totalRevenue        ?? 0,
-        netProfit:           ex.netProfit           ?? project.costs?.netProfit           ?? 0,
-        landCost:            ex.landCost            ?? project.costs?.landCost            ?? 0,
-        constructionCost:    ex.constructionCost    ?? project.costs?.constructionCost    ?? 0,
-        finishingCost:       ex.finishingCost       ?? project.costs?.finishingCost       ?? 0,
-        financingCost:       ex.financingCost       ?? project.costs?.financingCost       ?? 0,
-        otherCost:           ex.otherCost           ?? project.costs?.otherCost           ?? 0,
-        developerCost:       ex.developerFee        ?? project.costs?.developerCost       ?? 0,
-        fundCost:            ex.fundFees            ?? project.costs?.fundCost            ?? 0,
-        totalCost:           ex.totalCost           ?? (inv || (project.costs?.totalCost  ?? 0)),
-        operationalCost:     ex.operationalCost     ?? project.costs?.operationalCost     ?? 0,
-        directSalesRevenue:  ex.directSalesRevenue  ?? project.costs?.directSalesRevenue  ?? 0,
-        annualRentalRevenue: ex.annualRentalRevenue ?? project.costs?.annualRentalRevenue ?? 0,
-        dailyRentalRevenue:  ex.dailyRentalRevenue  ?? project.costs?.dailyRentalRevenue  ?? 0,
-        offplanRevenue:      ex.offplanRevenue      ?? project.costs?.offplanRevenue      ?? 0,
-        exitValue:           ex.exitValue           ?? project.costs?.exitValue           ?? 0,
-      },
-    });
-    refreshPortfolio();
   };
 
   const selectedCat = CATEGORY_OPTIONS.find(c => c.value === category);

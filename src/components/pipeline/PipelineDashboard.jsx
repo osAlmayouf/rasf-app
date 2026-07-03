@@ -240,6 +240,16 @@ export default function PipelineDashboard() {
   const avgIRR   = count > 0 ? projects.reduce((s, p) => s + (p.irr  || 0), 0) / count : 0;
   const avgROI   = count > 0 ? projects.reduce((s, p) => s + (p.roi  || 0), 0) / count : 0;
 
+  // Totals row aggregates: averages for ratios, sums for money/units
+  const avgROE    = count > 0 ? projects.reduce((s, p) => s + (p.roeAnnual || 0), 0) / count : 0;
+  const totalNP   = projects.reduce((s, p) => s + (p.costs?.netProfit    ?? 0), 0);
+  const totalRev  = projects.reduce((s, p) => s + (p.costs?.totalRevenue ?? 0), 0);
+  const totalCost = projects.reduce((s, p) => s + (p.costs?.totalCost ?? (p.investmentM * 1000)), 0);
+  const totalMOIC = totalCost > 0 ? `${(totalRev / totalCost).toFixed(2)}x` : '—';
+  const paybackVals = projects.map(p => Number(p.paybackYears)).filter(v => v > 0);
+  const avgPayback  = paybackVals.length ? paybackVals.reduce((s, v) => s + v, 0) / paybackVals.length : 0;
+  const totalUnits  = projects.reduce((s, p) => s + (Number(p.units) || 0), 0);
+
   const sarUnit = (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
       {displayMode === 'thousands' ? (lang === 'ar' ? 'ألف' : 'K') : (lang === 'ar' ? 'ريال' : 'SAR')}
@@ -501,7 +511,24 @@ export default function PipelineDashboard() {
                 <td style={{ padding: '10px 14px', fontWeight: 800, color: '#10b981' }}>
                   {fmtPct(avgROI)}
                 </td>
-                <td colSpan={6} />
+                <td style={{ padding: '10px 14px', fontWeight: 700, color: '#10b981' }}>
+                  {fmtPct(avgROE)}
+                </td>
+                <td style={{ padding: '10px 14px', fontWeight: 800, color: totalNP >= 0 ? '#10b981' : '#ef4444' }}>
+                  {fmt(totalNP)}
+                </td>
+                <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--text-hi)' }}>
+                  {fmt(totalRev)}
+                </td>
+                <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--rasf-primary)' }}>
+                  {totalMOIC}
+                </td>
+                <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                  {avgPayback ? `${avgPayback.toFixed(2)} ${lang === 'ar' ? 'سنة' : 'yr'}` : '—'}
+                </td>
+                <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--text-hi)' }}>
+                  {totalUnits.toLocaleString('en-US')}
+                </td>
               </tr>
             </tfoot>
           </table>

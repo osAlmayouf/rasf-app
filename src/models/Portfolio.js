@@ -96,7 +96,7 @@ export class Portfolio extends Entity {
       'moic', 'paybackYears', 'deliveryDate', 'startDate',
       'area', 'farValue', 'aboveGradeGBA', 'belowGradeGBA',
       'totalGBA', 'nsaArea', 'units', 'unitsSold', 'avgUnitPrice',
-      'componentBreakdown', 'investors', 'cashFlows',
+      'componentBreakdown', 'revenueBreakdown', 'investors', 'cashFlows',
       'lastUpdated', 'scenarios',
     ];
 

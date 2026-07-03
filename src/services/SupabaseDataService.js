@@ -1,6 +1,17 @@
 import { supabase } from '../lib/supabase';
 import { PORTFOLIO_SEED } from '../data/seedData';
 
+// ── Local cache (survives page reloads even when Supabase is unreachable) ──────
+const LS_KEY = 'rasf-portfolio';
+function loadLocal() {
+  try { const raw = localStorage.getItem(LS_KEY); return raw ? JSON.parse(raw) : null; }
+  catch { return null; }
+}
+function saveLocal(portfolioRaw) {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(portfolioRaw)); }
+  catch { /* quota / serialization — ignore */ }
+}
+
 export class SupabaseDataService {
 
   // ── Load ──────────────────────────────────────────────────────────────
@@ -11,26 +22,29 @@ export class SupabaseDataService {
         supabase.from('portfolio_settings').select('*').eq('id', 'main').single(),
       ]);
 
-      if (!projects || projects.length === 0) {
-        // First run — seed from local data
-        await this.seedFromData(PORTFOLIO_SEED);
-        return PORTFOLIO_SEED;
+      if (projects && projects.length > 0) {
+        return {
+          id:            settings?.id            ?? 'portfolio-1',
+          currency:      settings?.currency      ?? 'SAR',
+          quarterGrowth: settings?.quarter_growth ?? PORTFOLIO_SEED.quarterGrowth,
+          projects:      projects.map(row => row.data),
+        };
       }
 
-      return {
-        id:            settings?.id            ?? 'portfolio-1',
-        currency:      settings?.currency      ?? 'SAR',
-        quarterGrowth: settings?.quarter_growth ?? PORTFOLIO_SEED.quarterGrowth,
-        projects:      projects.map(row => row.data),
-      };
+      // Supabase reachable but empty → prefer a local copy if we have one, else seed
+      const local = loadLocal();
+      if (local?.projects?.length) return local;
+      await this.seedFromData(PORTFOLIO_SEED);
+      return PORTFOLIO_SEED;
     } catch (err) {
-      console.warn('[Supabase] load failed — using local seed data', err);
-      return null;
+      console.warn('[Supabase] load failed — falling back to local cache', err);
+      return loadLocal();   // null → caller falls back to seed
     }
   }
 
   // ── Save (full sync after any mutation) ───────────────────────────────
   static async savePortfolio(portfolioRaw) {
+    saveLocal(portfolioRaw);   // always keep a local copy (survives Supabase outages)
     try {
       await Promise.all([
         supabase.from('portfolio_settings').upsert({
@@ -42,8 +56,7 @@ export class SupabaseDataService {
         supabase.from('projects').upsert(
           portfolioRaw.projects.map((p, i) => ({
             id:         p.id,
-            name:       p.name,
-            data:       p,
+            data:       p,               // full project JSON (name lives inside data)
             status:     p.status === 'pipeline' ? 'pipeline' : 'portfolio',
             sort_order: i,
             updated_at: new Date().toISOString(),
@@ -51,7 +64,7 @@ export class SupabaseDataService {
         ),
       ]);
     } catch (err) {
-      console.warn('[Supabase] save failed', err);
+      console.warn('[Supabase] save failed (local copy kept)', err);
     }
   }
 
@@ -75,8 +88,7 @@ export class SupabaseDataService {
       supabase.from('projects').upsert(
         seed.projects.map((p, i) => ({
           id:         p.id,
-          name:       p.name,
-          data:       p,
+          data:       p,               // full project JSON (name lives inside data)
           status:     p.status === 'pipeline' ? 'pipeline' : 'portfolio',
           sort_order: i,
         }))

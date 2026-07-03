@@ -28,7 +28,7 @@ export function AppProvider({ children }) {
   const [selectedProjectId, setSelectedProjectId]  = useState('asaar');
   const [pendingTab, setPendingTab]                = useState(null);
   const [outerProjectTab, setOuterProjectTab]      = useState('active');
-  const [, forceRender]                            = useState(0);
+  const [dataVersion, forceRender]                 = useState(0);
   const [loading, setLoading]                      = useState(true);
   const [portfolioService, setPortfolioService]    = useState(null);
   const syncTimer = useRef(null);
@@ -114,11 +114,13 @@ export function AppProvider({ children }) {
     pendingTab, setPendingTab,
     outerProjectTab, setOuterProjectTab,
     loading,
+    dataVersion, // bumped by refreshPortfolio/Files/Notes → forces consumers to re-read mutated data
   }), [lang, theme, displayMode, currentPage, t, toggleLang, toggleTheme, toggleDisplayMode,
       refreshFiles, refreshPortfolio, refreshNotes, restoreSeedProjects,
       pendingTab, setPendingTab,
       outerProjectTab,
-      selectedProjectId, portfolioService, loading]);
+      selectedProjectId, portfolioService, loading,
+      dataVersion]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
