@@ -17,21 +17,16 @@ function defaultCompleted(status) {
   }
 }
 
-// localStorage key scoped to each project
-const storageKey = (projectId) => `lifecycle_completed_${projectId}`;
-
-function loadCompleted(projectId, status) {
+// Initial completed count. Source of truth is the project (synced with Supabase);
+// falls back to a legacy localStorage value (one-time migration) then to a default
+// derived from the project status.
+function initialCompleted(project, projectId, status) {
+  if (project?.lifecycleCompleted != null) return project.lifecycleCompleted;
   try {
-    const stored = localStorage.getItem(storageKey(projectId));
+    const stored = localStorage.getItem(`lifecycle_completed_${projectId}`);
     if (stored !== null) return Number(stored);
-  } catch {}
+  } catch { /* ignore */ }
   return defaultCompleted(status);
-}
-
-function saveCompleted(projectId, value) {
-  try {
-    localStorage.setItem(storageKey(projectId), String(value));
-  } catch {}
 }
 
 // خط سير المشروع
@@ -42,7 +37,8 @@ export default function ProjectLifecycle({ projectId, status }) {
   const PHASE_KEYS  = isPipeline ? STUDY_PHASES : ACTIVE_PHASES;
   const TOTAL       = PHASE_KEYS.length;
 
-  const [completed, setCompleted] = useState(() => loadCompleted(projectId, status));
+  const project = portfolioService.getProject(projectId);
+  const [completed, setCompleted] = useState(() => initialCompleted(project, projectId, status));
   const [pendingIdx, setPendingIdx] = useState(null);
 
   const phaseState = (i) => {
@@ -61,10 +57,9 @@ export default function ProjectLifecycle({ projectId, status }) {
   const handleConfirm = (i) => {
     const next = phaseState(i) === 'active' ? i + 1 : i;
     setCompleted(next);
-    saveCompleted(projectId, next);   // ← persist across navigations & refreshes
     setPendingIdx(null);
-    // اختم "آخر تحديث" على المشروع عند تعديل خط سير العمل
-    portfolioService.updateProject(projectId, {});
+    // Persist progress on the project itself → syncs to Supabase via refreshPortfolio
+    portfolioService.updateProject(projectId, { lifecycleCompleted: next });
     refreshPortfolio();
   };
 

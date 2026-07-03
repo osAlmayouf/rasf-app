@@ -17,6 +17,24 @@ const TYPE_LABEL_MAP = {
   luxury_residential: 'typeCom', mixed: 'typeCom', hotel: 'typeCom',
 };
 
+// Study phases (mirrors ProjectLifecycle). The current phase is derived from the
+// lifecycle progress persisted per project, so the status reflects study advancement.
+const STUDY_PHASE_KEYS = ['sp1', 'sp2', 'sp3', 'sp4'];
+function currentStudyPhaseKey(project) {
+  // Source of truth is project.lifecycleCompleted (synced with Supabase); fall
+  // back to a legacy localStorage value for projects not migrated yet.
+  let completed = project?.lifecycleCompleted;
+  if (completed == null) {
+    try {
+      const stored = localStorage.getItem(`lifecycle_completed_${project.id}`);
+      if (stored !== null) completed = Number(stored);
+    } catch { /* ignore */ }
+  }
+  completed = completed ?? 0;
+  const idx = Math.min(Math.max(completed, 0), STUDY_PHASE_KEYS.length - 1);
+  return STUDY_PHASE_KEYS[idx];
+}
+
 const SORT_OPTIONS = [
   { key: 'opportunityDate', label: 'تاريخ الفرصة' },
   { key: 'lastUpdated',     label: 'آخر تحديث'    },
@@ -289,7 +307,7 @@ export default function PipelinePage() {
                     <td className="px-6 py-4" style={{ fontWeight: 600, color: 'var(--text-lo)', fontSize: 13 }}>{fmtPct(p.roeAnnual)}</td>
 
                     <td className="px-6 py-4">
-                      <Tag variant="blue">{t('statusPipeline')}</Tag>
+                      <Tag variant="blue">{t(currentStudyPhaseKey(p))}</Tag>
                     </td>
 
                     <td className="px-6 py-4">

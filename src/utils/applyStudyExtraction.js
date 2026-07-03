@@ -11,7 +11,13 @@ export function buildProjectUpdateFromStudy(ex, project) {
     ? Object.entries(ex.componentBreakdown).map(([key, data]) => ({ key, ...data }))
     : project.componentBreakdown ?? [];
 
+  // Preserve existing amenities, refresh total parking from the study
+  const amenities = { ...(project.components?.amenities ?? {}) };
+  if (ex.totalParking != null && ex.totalParking > 0) amenities.parking = ex.totalParking;
+
   return {
+    landscapeArea:   ex.landscapeArea  || project.landscapeArea,
+    components:       { ...(project.components ?? {}), amenities },
     location:        ex.location      || project.location,
     deliveryDate:    ex.deliveryDate  || project.deliveryDate,
     investmentM:     inv || project.investmentM,
@@ -31,6 +37,8 @@ export function buildProjectUpdateFromStudy(ex, project) {
     paybackYears:    ex.paybackYears  ?? project.paybackYears,
     componentBreakdown: compBreakdown,
     revenueBreakdown:   ex.revenueBreakdown ?? project.revenueBreakdown ?? null,
+    cashFlows:          (ex.cashFlows && ex.cashFlows.length) ? ex.cashFlows : project.cashFlows,
+    financing:          ex.financing        ?? project.financing        ?? null,
     costs: {
       totalRevenue:        ex.totalRevenue        ?? project.costs?.totalRevenue        ?? 0,
       netProfit:           ex.netProfit           ?? project.costs?.netProfit           ?? 0,

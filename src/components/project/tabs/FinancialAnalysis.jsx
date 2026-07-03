@@ -15,7 +15,6 @@ const DOUGHNUT_OPTIONS = {
 
 export default function FinancialAnalysis({ project }) {
   const { t, lang, displayMode } = useApp();
-  const isAr = lang === 'ar';
   const costs = project.costs;
 
   const costData = {
@@ -46,12 +45,22 @@ export default function FinancialAnalysis({ project }) {
                + (f.landOwnerInKind             ?? 0)
                + (f.contractorCashSubscription  ?? 0);
 
+  // Prefer the figures extracted from the study; fall back to derived values
+  // only when the study didn't provide them. Keeps this tab consistent with the
+  // project header cards (which show the study's own ROI/ROE/IRR).
+  const roi    = project.roi       ?? (totalCost > 0 ? (np / totalCost) * 100 : null);
+  const roeAnn = project.roeAnnual ?? (equity > 0 && project.paybackYears > 0
+    ? (np / equity * 100) / project.paybackYears : null);
+  // ROE (total) — derive from annual × payback when the study gave an annual
+  // figure, otherwise compute straight from equity.
+  const roe = (project.roeAnnual != null && project.paybackYears > 0)
+    ? project.roeAnnual * project.paybackYears
+    : (equity > 0 ? (np / equity) * 100 : null);
+
   const moicCalc   = totalCost > 0 ? `${(totalRev / totalCost).toFixed(2)}x`  : '—';
-  const roiCalc    = totalCost > 0 ? fmtPct((np / totalCost) * 100)           : '—';
-  const roeCalc    = equity    > 0 ? fmtPct((np / equity)    * 100)           : '—';
-  const roeAnnCalc = equity > 0 && project.paybackYears > 0
-    ? fmtPct((np / equity * 100) / project.paybackYears)
-    : '—';
+  const roiCalc    = roi    != null ? fmtPct(roi)    : '—';
+  const roeCalc    = roe    != null ? fmtPct(roe)    : '—';
+  const roeAnnCalc = roeAnn != null ? fmtPct(roeAnn) : '—';
 
   const kpiCards = [
     { label: addUnit(t('fk1'), displayMode, lang), value: <SARNum millions={np} />, color: '#10b981' },

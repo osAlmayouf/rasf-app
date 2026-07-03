@@ -83,9 +83,9 @@ export default function CashFlows({ project }) {
           <div>
             <div className="section-hd mb-0.5">{t('cfChT')}</div>
             <div className="section-sub">
-              {isAr
-                ? `2024 – 2028 ${chartSub}`
-                : `2024 – 2028 ${chartSub}`}
+              {flows.length
+                ? `${flows[0].year} – ${flows[flows.length - 1].year} ${chartSub}`
+                : chartSub}
             </div>
           </div>
           <div className="flex items-center gap-4" style={{ paddingTop: 2 }}>

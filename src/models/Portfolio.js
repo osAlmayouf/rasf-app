@@ -95,9 +95,9 @@ export class Portfolio extends Entity {
       'investmentM', 'totalInvestment', 'irr', 'roi', 'roeAnnual',
       'moic', 'paybackYears', 'deliveryDate', 'startDate',
       'area', 'farValue', 'aboveGradeGBA', 'belowGradeGBA',
-      'totalGBA', 'nsaArea', 'units', 'unitsSold', 'avgUnitPrice',
+      'totalGBA', 'nsaArea', 'landscapeArea', 'units', 'unitsSold', 'avgUnitPrice',
       'componentBreakdown', 'revenueBreakdown', 'investors', 'cashFlows',
-      'lastUpdated', 'scenarios',
+      'lastUpdated', 'scenarios', 'lifecycleCompleted',
     ];
 
     SIMPLE_FIELDS.forEach(field => {

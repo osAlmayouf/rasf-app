@@ -44,11 +44,13 @@ const PATTERNS = {
   moic:             ['مضاعف رأس المال', 'MOIC', 'Money-on-Money', 'مضاعف الأموال'],
 
   // ── COSTS SUMMARY ─────────────────────────────────────────────────────────
-  totalCost:        ['إجمالي التكاليف الكاملة', 'اجمالي تكاليف الصندوق', 'Total fund costs',
+  // NOTE: keep these specific to the *total project* cost. Do NOT add generic
+  // 'Total Costs' or fund-cost labels ('اجمالي تكاليف الصندوق' / 'Total fund costs')
+  // — they match stray ratio cells or the fund-costs figure and corrupt totalCost.
+  totalCost:        ['إجمالي التكاليف الكاملة للمشروع', 'إجمالي التكاليف الكاملة',
                      'Total project cost', 'التكلفة الإجمالية للمشروع',
                      'التكلفة الإجمالية + مصاريف الصندوق',
-                     'إجمالي التكاليف الكاملة للمشروع',
-                     'تكلفة اجمالي المشروع', 'تكلفة إجمالي المشروع', 'Total Costs'],
+                     'تكلفة اجمالي المشروع', 'تكلفة إجمالي المشروع'],
   operationalCost:  ['إجمالي التكاليف التشغيلية', 'التكاليف التشغيلية', 'Total OpEx', 'OpEx'],
 
   // ── COST BREAKDOWN ────────────────────────────────────────────────────────
@@ -224,6 +226,13 @@ const AREA_FIELDS = new Set([
   'landscapeArea', 'avgUnitSize',
 ]);
 
+// Areas that are always in the hundreds+ of m² — used to skip tiny adjacent
+// numbers (floor counts, ratios) when reading the value. Excludes avgUnitSize,
+// which can legitimately be below 100 m².
+const LARGE_AREA_FIELDS = new Set([
+  'area', 'aboveGradeGBA', 'belowGradeGBA', 'totalGBA', 'nsaArea', 'landscapeArea',
+]);
+
 // ─── STATUS MAP ───────────────────────────────────────────────────────────────
 const STATUS_MAP = {
   'نشط': 'active', 'active': 'active',
@@ -295,7 +304,7 @@ function buildCellMap(wb) {
   return bySheet;
 }
 
-function getAdjacentValue(bySheet, sheetName, r, c, allKeywords, maxCol = 10, maxRow = 4) {
+function getAdjacentValue(bySheet, sheetName, r, c, allKeywords, maxCol = 10, maxRow = 4, minNumeric = 0) {
   const candidates = (bySheet[sheetName] ?? []).filter(cell =>
     (cell.r === r && cell.c > c && cell.c <= c + maxCol) ||
     (cell.c === c && cell.r > r && cell.r <= r + maxRow)
@@ -310,6 +319,9 @@ function getAdjacentValue(bySheet, sheetName, r, c, allKeywords, maxCol = 10, ma
     const v = cell.v;
     if (v == null || v === '' || v === 0 || v === '-') continue;
     if (typeof v === 'string' && allKeywords.some(kw => v.toLowerCase().includes(kw.toLowerCase()))) continue;
+    // Skip too-small numerics for large-area fields (e.g. basement floor count 4.5
+    // sitting left of the real area 51,961.5). Applies only when minNumeric > 0.
+    if (minNumeric > 0 && typeof v === 'number' && Math.abs(v) < minNumeric) continue;
     return cell;
   }
   return null;
@@ -431,8 +443,14 @@ function parseFinancingItems(bySheet, wb, allKeywords) {
 
   for (const { key, labels } of FINANCING_ITEM_PATTERNS) {
     let found = false;
+    // Once the item's label appears in a primary sheet (Study/Summary/…), trust
+    // that sheet's value — even if it's 0 — and do NOT fall back to Sheet1, which
+    // is a broken template copy carrying a constant placeholder (e.g. 23) that
+    // would otherwise overwrite a legitimate 0 (fund-manager / developer-cash subs).
+    let seenInPrimary = false;
     for (const sheetName of sheetOrder) {
       if (found) break;
+      if (sheetName === 'Sheet1' && seenInPrimary) break;
       for (const cell of (bySheet[sheetName] ?? [])) {
         if (typeof cell.v !== 'string') continue;
         const cellText = cell.v.trim();
@@ -442,6 +460,7 @@ function parseFinancingItems(bySheet, wb, allKeywords) {
         if (key === 'offplanSales' && OFFPLAN_EXCLUSIONS.some(ex => lower.includes(ex.toLowerCase()))) continue;
 
         if (!labels.some(l => lower === l.toLowerCase() || lower.startsWith(l.toLowerCase()))) continue;
+        if (sheetName !== 'Sheet1') seenInPrimary = true;
         const adj = getAdjacentValue(bySheet, sheetName, cell.r, cell.c, allKeywords);
         if (!adj) continue;
         const displayStr = adj.w || String(adj.v);
@@ -853,6 +872,51 @@ function parseRevenueTables(bySheet, wb) {
   return Object.keys(out).length ? out : null;
 }
 
+// Per-component GBA and NSA live in the Study "المكون (Component)" area table:
+//   "إجمالي المساحة البنائية للمكون (GBA)"  → gross build area
+//   "المساحات الصافية القابلة للبيع (NSA)"  → net saleable area (TOTAL, not just
+//                                             the directly-sold slice the revenue
+//                                             tables carry).
+// Returns { componentKey: { gba, nsa } }.
+function parseComponentAreaTable(bySheet, wb) {
+  const out = {};
+  for (const sheetName of wb.SheetNames) {
+    const cells = bySheet[sheetName] ?? [];
+    if (!cells.length) continue;
+    const idx = new Map(cells.map(c => [c.r + '_' + c.c, c]));
+    const at  = (r, c) => idx.get(r + '_' + c);
+
+    const anchors = cells.filter(c => typeof c.v === 'string' && c.v.trim().startsWith('المكون'));
+    for (const a of anchors) {
+      // Locate the GBA and NSA value columns in this header row. The NSA-% column
+      // ("نسبة المساحات الصافية…") shares text with NSA, so exclude 'نسبة'.
+      let gbaCol = null, nsaCol = null;
+      for (let c = a.c; c < a.c + 12; c++) {
+        const h = String(at(a.r, c)?.v ?? '');
+        if (gbaCol == null && h.includes('إجمالي المساحة البنائية للمكون')) gbaCol = c;
+        if (nsaCol == null && h.includes('المساحات الصافية القابلة للبيع') && !h.includes('نسبة')) nsaCol = c;
+      }
+      if (gbaCol == null && nsaCol == null) continue;
+
+      for (let r = a.r + 1; r < a.r + 14; r++) {
+        const name = String(at(r, a.c)?.v ?? '').trim();
+        if (!name) continue;
+        if (name.includes('الإجمالي') || name.toLowerCase().includes('total')) break;
+        const comp = REV_COMPONENT_PREFIXES.find(([, p]) => name.startsWith(p));
+        if (!comp || out[comp[0]]) continue;
+        const g = gbaCol != null ? normalizeNum(at(r, gbaCol)?.v) : null;
+        const n = nsaCol != null ? normalizeNum(at(r, nsaCol)?.v) : null;
+        const rec = {};
+        if (g != null && g > 0) rec.gba = Math.round(g);
+        if (n != null && n > 0) rec.nsa = Math.round(n);
+        if (Object.keys(rec).length) out[comp[0]] = rec;
+      }
+      if (Object.keys(out).length) return out;
+    }
+  }
+  return Object.keys(out).length ? out : null;
+}
+
 // Merge the 5 revenue sections into one reliable per-component breakdown, and
 // derive the total physical unit count (max across sale/rental so a component
 // counted in both isn't double-added). Replaces the fuzzy Study-sheet scan.
@@ -881,6 +945,72 @@ function buildComponentsFromRevenue(rb) {
     if (c.nsa != null) c.gba = c.nsa;   // for useType (largest component by area)
   }
   return { components: comps, unitsTotal: unitsTotal || null };
+}
+
+// Quarterly cash-flow table (جدول تفاصيل التدفقات النقدية): for every quarter
+// column, total the inflow rows (التدفقات النقدية الداخلة) → cash-in and the
+// outflow rows (التدفقات النقدية الخارجة) → cash-out. Returns the app cashFlows
+// shape [{ year:'YYYY Qn', revenue, expenses }] in SAR millions (expenses negative).
+function parseCashFlowTable(bySheet, wb) {
+  for (const sheetName of wb.SheetNames) {
+    const cells = bySheet[sheetName] ?? [];
+    if (!cells.length) continue;
+    const idx = new Map(cells.map(c => [c.r + '_' + c.c, c]));
+    const at  = (r, c) => idx.get(r + '_' + c);
+
+    let inflowH = null, outflowH = null, netR = null, hdrR = null;
+    for (const c of cells) {
+      if (typeof c.v !== 'string') continue;
+      if (inflowH  == null && c.v.includes('التدفقات النقدية الداخلة')) inflowH  = c.r;
+      if (outflowH == null && c.v.includes('التدفقات النقدية الخارجة')) outflowH = c.r;
+      if (netR     == null && c.v.includes('صافي التدفق النقدي'))        netR     = c.r;
+      if (hdrR     == null && c.v.includes('البند') && c.v.includes('Item')) hdrR = c.r;
+    }
+    if (inflowH == null || outflowH == null || netR == null) continue;
+    if (!(inflowH < outflowH && outflowH < netR)) continue;
+    const inflowStart = (hdrR != null && hdrR > inflowH && hdrR < outflowH) ? hdrR + 1 : inflowH + 1;
+
+    // Quarter columns carry a date in the inflow header row. parseStudyFile reads
+    // with cellDates:true, so these arrive as Date objects (older serial numbers
+    // are handled as a fallback).
+    const maxCol = cells.reduce((m, c) => Math.max(m, c.c), 0);
+    const quarters = [];
+    for (let c = 0; c <= maxCol; c++) {
+      const d = at(inflowH, c);
+      if (!d) continue;
+      let year = null, month = null;
+      if (d.v instanceof Date && !isNaN(d.v)) {
+        // cellDates builds local-time dates whose absolute instant drifts with the
+        // runtime timezone. Snap to the nearest UTC day → tz-independent calendar date.
+        const snap = new Date(Math.round(d.v.getTime() / 86400000) * 86400000);
+        year = snap.getUTCFullYear(); month = snap.getUTCMonth() + 1;
+      } else if (typeof d.v === 'number' && d.v > 40000 && d.v < 60000) {
+        const js = new Date(Math.round((d.v - 25569) * 86400000));
+        year = js.getUTCFullYear(); month = js.getUTCMonth() + 1;
+      }
+      if (year != null) quarters.push({ c, label: `${year} Q${Math.ceil(month / 3)}` });
+    }
+    if (!quarters.length) continue;
+
+    const sumCol = (r0, r1, c, wantPositive) => {
+      let s = 0;
+      for (let r = r0; r <= r1; r++) {
+        const e = at(r, c);
+        if (e && typeof e.v === 'number' && (wantPositive ? e.v > 0 : e.v < 0)) s += e.v;
+      }
+      return s;
+    };
+
+    const flows = quarters.map(({ c, label }) => ({
+      year:     label,
+      revenue:  parseFloat((sumCol(inflowStart,   outflowH - 1, c, true)  / 1e6).toFixed(2)),
+      expenses: parseFloat((sumCol(outflowH + 1,  netR - 1,     c, false) / 1e6).toFixed(2)),
+    }));
+    // Drop trailing quarters with no activity
+    while (flows.length && flows[flows.length - 1].revenue === 0 && flows[flows.length - 1].expenses === 0) flows.pop();
+    return flows.length ? flows : null;
+  }
+  return null;
 }
 
 // ─── MAIN EXPORT ──────────────────────────────────────────────────────────────
@@ -951,6 +1081,9 @@ export async function parseStudyFile(file) {
     // revenue assumptions per type (بيع/تأجير/مخارجة), each { total, perComponent }
     revenueBreakdown: null,
 
+    // quarterly cash-flow [{ year, revenue, expenses }]
+    cashFlows: null,
+
     rawHits: [],
   };
 
@@ -986,8 +1119,11 @@ export async function parseStudyFile(file) {
 
           // Text-only fields: tight search (adjacent col/row only) to avoid false matches
           const isTextField = field === 'projectName' || field === 'location' || field === 'projectType';
+          // Large-area fields: skip tiny adjacent numbers (floor counts / coefficients)
+          // that sit before the real area figure.
+          const minNumeric = LARGE_AREA_FIELDS.has(field) ? 100 : 0;
           const adj = getAdjacentValue(bySheet, sheetName, cell.r, cell.c, allKeywords,
-            isTextField ? 3 : 10, isTextField ? 2 : 4);
+            isTextField ? 3 : 10, isTextField ? 2 : 4, minNumeric);
           if (!adj) continue;
 
           const raw     = adj.v;
@@ -1045,6 +1181,19 @@ export async function parseStudyFile(file) {
     // Only run fuzzy breakdown when no APP sheet is present.
     if (!appData) {
       result.componentBreakdown = parseComponentBreakdown(bySheet, wb, allKeywords);
+
+      // Fund costs vs developer costs: in the Study sheet "إجمالي تكاليف الصندوق"
+      // (Total fund costs) already INCLUDES the developer fee. The app tracks
+      // developer cost as its own line, so strip it out to avoid double-counting.
+      const ffHit = result.rawHits.find(h => h.field === 'fundFees');
+      const ffMerged = ffHit && (
+        ffHit.label.includes('إجمالي تكاليف الصندوق') ||
+        ffHit.label.toLowerCase().includes('total fund costs')
+      );
+      if (ffMerged && result.fundFees != null && result.developerFee != null
+          && result.fundFees > result.developerFee) {
+        result.fundFees = parseFloat((result.fundFees - result.developerFee).toFixed(2));
+      }
     }
 
     // ── Third pass: financing structure items ─────────────────────────────────
@@ -1053,6 +1202,9 @@ export async function parseStudyFile(file) {
     // ── Fourth pass: revenue assumptions per type (per-component tables) ───────
     result.revenueBreakdown = parseRevenueTables(bySheet, wb);
 
+    // ── Cash-flow pass: quarterly cash-in / cash-out ──────────────────────────
+    result.cashFlows = parseCashFlowTable(bySheet, wb);
+
     // Non-APP studies: derive a reliable componentBreakdown + total units from the
     // revenue tables (the fuzzy Study-sheet scan above produces phantom values).
     if (!appData && result.revenueBreakdown) {
@@ -1060,6 +1212,20 @@ export async function parseStudyFile(file) {
       if (Object.keys(merged.components).length) {
         result.componentBreakdown = merged.components;
         if (result.units == null) result.units = merged.unitsTotal;
+      }
+    }
+
+    // Overlay real per-component GBA + total NSA from the Study area table. The
+    // revenue tables only carry the directly-sold NSA slice (and gba defaulted to
+    // it), so the area table is authoritative for both gross and net area.
+    if (!appData && result.componentBreakdown && typeof result.componentBreakdown === 'object') {
+      const areaTable = parseComponentAreaTable(bySheet, wb);
+      if (areaTable) {
+        for (const [ck, comp] of Object.entries(result.componentBreakdown)) {
+          if (!comp || !areaTable[ck]) continue;
+          if (areaTable[ck].gba != null) comp.gba = areaTable[ck].gba;
+          if (areaTable[ck].nsa != null) comp.nsa = areaTable[ck].nsa;
+        }
       }
     }
 

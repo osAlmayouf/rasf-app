@@ -13,6 +13,7 @@ import FundingStructure  from './tabs/FundingStructure';
 import ProjectFiles      from './tabs/ProjectFiles';
 import Distributions     from './tabs/Distributions';
 import Revenue           from './tabs/Revenue';
+import CashFlows         from './tabs/CashFlows';
 import ProjectLifecycle  from './ProjectLifecycle';
 
 const TABS = [
@@ -22,6 +23,7 @@ const TABS = [
   { id: 'fund',    labelKey: 'tbFund',    Component: FundingStructure   },
   { id: 'dist',    labelKey: 'tbDist',    Component: Distributions      },
   { id: 'revenue', labelKey: 'tbRevenue', Component: Revenue            },
+  { id: 'cashflow', labelKey: 'tbCash',   Component: CashFlows          },
   { id: 'comp',    labelKey: 'tbComp',    Component: ProjectComponents  },
   { id: 'files',   labelKey: 'tbFiles2',  Component: ProjectFiles       },
 ];

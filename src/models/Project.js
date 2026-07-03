@@ -21,7 +21,7 @@ export const ProjectType = Object.freeze({
 });
 
 export class Project extends Entity {
-  constructor({ id, name, location, subtitle, roi, irr, roeAnnual, progress, status, type, totalInvestment, investmentM, deliveryDate, startDate, opportunityDate, lastUpdated, area, farValue, aboveGradeGBA, belowGradeGBA, totalGBA, nsaArea, units, unitsSold, avgUnitPrice, moic, paybackYears, phases, milestones, costs, cashFlows, investors, components, componentBreakdown, funding, equity, financing, scenarios }) {
+  constructor({ id, name, location, subtitle, roi, irr, roeAnnual, progress, status, type, totalInvestment, investmentM, deliveryDate, startDate, opportunityDate, lastUpdated, area, farValue, aboveGradeGBA, belowGradeGBA, totalGBA, nsaArea, landscapeArea, units, unitsSold, avgUnitPrice, moic, paybackYears, phases, milestones, costs, cashFlows, investors, components, componentBreakdown, funding, equity, financing, scenarios, revenueBreakdown, lifecycleCompleted }) {
     super(id);
     this.name              = name;
     this.subtitle          = subtitle ?? '';
@@ -46,6 +46,7 @@ export class Project extends Entity {
     this.belowGradeGBA     = belowGradeGBA ?? '—';
     this.totalGBA          = totalGBA      ?? '—';
     this.nsaArea           = nsaArea       ?? '—';
+    this.landscapeArea     = landscapeArea ?? '—';
     this.units             = units;
     this.unitsSold         = unitsSold;
     this.avgUnitPrice      = avgUnitPrice  ?? 0;
@@ -61,6 +62,9 @@ export class Project extends Entity {
     this.funding           = funding         ?? {};
     this.equity            = equity          ?? {};
     this.financing         = financing       ?? null;
+    this.revenueBreakdown  = revenueBreakdown ?? null;
+    // تقدّم مراحل الدراسة/التقييم — عدد المراحل المكتملة (يُزامَن مع Supabase)
+    this.lifecycleCompleted = lifecycleCompleted ?? null;
     // مقترحات/سيناريوهات الاستخدام — كل مقترح نموذج تقني + مالي مستقل
     this.scenarios         = scenarios       ?? [];
   }

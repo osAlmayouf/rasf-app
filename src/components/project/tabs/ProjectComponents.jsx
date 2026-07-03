@@ -5,7 +5,7 @@ import { addUnit } from '../../../utils/fmtMode';
 import GlassCard from '../../common/GlassCard';
 import SARSymbol from '../../common/SARSymbol';
 import SARNum from '../../common/SARNum';
-import { Building2, Home, Rows3, Bed, ShoppingBag, Briefcase, BedDouble, HeartPulse, BarChart2, Tag, CheckCircle2, Car, Layers, Waves, Dumbbell, Leaf, TreePine, SquareParking } from 'lucide-react';
+import { Building2, Home, Rows3, Bed, ShoppingBag, Briefcase, BedDouble, HeartPulse, Tag, Car, Layers, Waves, Dumbbell, Leaf, TreePine, SquareParking } from 'lucide-react';
 
 // ─── Component type definitions ───────────────────────────────────────────────
 const COMP_TYPES = [
@@ -191,11 +191,13 @@ export default function ProjectComponents({ project }) {
     }],
   };
 
+  // Total net saleable area (NSA) = sum of each component's NSA
+  const totalNsa = rawBreakdown.reduce((sum, b) => sum + (Number(b.nsa) || 0), 0);
+
   // Parking / basement
   const amenities    = project.components?.amenities ?? {};
   const totalParking = amenities.parking || 0;
   const basementArea = project.belowGradeGBA || '';
-  const hasParking   = totalParking > 0 || !!basementArea;
 
   return (
     <div className="space-y-4">
@@ -241,9 +243,8 @@ export default function ProjectComponents({ project }) {
           <div className="grid grid-cols-3 gap-3">
             {[
               { label: 'إجمالي الوحدات',    value: fmtNum(project.units),    icon: <Home size={16} /> },
-              { label: 'الوحدات المباعة',   value: fmtNum(project.unitsSold), icon: <CheckCircle2 size={16} /> },
-              { label: 'صافي NSA',           value: project.nsaArea  || '—',  icon: <Tag size={16} /> },
-              { label: 'معامل البناء FAR',  value: project.farValue ? `${project.farValue}x` : '—', icon: <BarChart2 size={16} /> },
+              { label: 'صافي NSA',           value: totalNsa > 0 ? fmtArea(totalNsa) : (project.nsaArea || '—'), icon: <Tag size={16} /> },
+              { label: 'مساحة اللاند سكيب', value: (project.landscapeArea && project.landscapeArea !== '—') ? project.landscapeArea : '—', icon: <TreePine size={16} /> },
             ].map((item, i) => (
               <div key={i} className="glass rounded-xl p-3">
                 <div style={{ color: 'var(--rasf-primary)', marginBottom: 4, display: 'flex' }}>{item.icon}</div>
