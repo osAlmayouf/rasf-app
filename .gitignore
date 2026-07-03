@@ -24,6 +24,9 @@ supabase/.temp/
 CLAUDE.md
 explan.md
 
+# Office temp/lock files
+~$*
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
