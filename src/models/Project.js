@@ -21,11 +21,14 @@ export const ProjectType = Object.freeze({
 });
 
 export class Project extends Entity {
-  constructor({ id, name, location, subtitle, roi, irr, roeAnnual, progress, status, type, totalInvestment, investmentM, deliveryDate, startDate, opportunityDate, lastUpdated, area, farValue, aboveGradeGBA, belowGradeGBA, totalGBA, nsaArea, landscapeArea, units, unitsSold, avgUnitPrice, moic, paybackYears, phases, milestones, costs, cashFlows, investors, components, componentBreakdown, funding, equity, financing, scenarios, revenueBreakdown, lifecycleCompleted }) {
+  constructor({ id, name, location, subtitle, roi, irr, roeAnnual, progress, status, type, totalInvestment, investmentM, deliveryDate, startDate, opportunityDate, lastUpdated, area, farValue, aboveGradeGBA, belowGradeGBA, totalGBA, nsaArea, landscapeArea, units, unitsSold, avgUnitPrice, moic, paybackYears, phases, milestones, costs, cashFlows, investors, components, componentBreakdown, funding, equity, financing, scenarios, revenueBreakdown, lifecycleCompleted, lat, lng, mapUrl }) {
     super(id);
     this.name              = name;
     this.subtitle          = subtitle ?? '';
     this.location          = location;
+    this.lat               = lat ?? null;
+    this.lng               = lng ?? null;
+    this.mapUrl            = mapUrl ?? null;
     this.roi               = roi;
     this.irr               = irr;
     this.roeAnnual         = roeAnnual ?? 0;

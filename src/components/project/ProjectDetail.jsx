@@ -2,6 +2,7 @@
 import { useApp } from '../../contexts/useApp';
 import { fmtPct, fmtMonthYear } from '../../utils/fmt';
 import { stripUnit } from '../../utils/fmtMode';
+import { parseLatLng, isShortMapLink } from '../../utils/geo';
 import Tag            from '../common/Tag';
 import { X, ArrowUp, Archive } from 'lucide-react';
 import SARNum         from '../common/SARNum';
@@ -11,22 +12,31 @@ import FinancialAnalysis from './tabs/FinancialAnalysis';
 import ProjectComponents from './tabs/ProjectComponents';
 import FundingStructure  from './tabs/FundingStructure';
 import ProjectFiles      from './tabs/ProjectFiles';
+import ProjectGallery     from './tabs/ProjectGallery';
 import Distributions     from './tabs/Distributions';
 import Revenue           from './tabs/Revenue';
 import CashFlows         from './tabs/CashFlows';
+import { SupabaseDataService } from '../../services/SupabaseDataService';
 import ProjectLifecycle  from './ProjectLifecycle';
 
 const TABS = [
   { id: 'board',     labelKey: 'tbBoard',     Component: ProjectBoard       },
-  { id: 'scenarios', labelKey: 'tbScenarios', Component: ProjectScenarios   },
+  // { id: 'scenarios', labelKey: 'tbScenarios', Component: ProjectScenarios   }, // مخفية مؤقتاً — الوقت مبكر
   { id: 'fin',       labelKey: 'tbFin',       Component: FinancialAnalysis  },
   { id: 'fund',    labelKey: 'tbFund',    Component: FundingStructure   },
-  { id: 'dist',    labelKey: 'tbDist',    Component: Distributions      },
-  { id: 'revenue', labelKey: 'tbRevenue', Component: Revenue            },
-  { id: 'cashflow', labelKey: 'tbCash',   Component: CashFlows          },
   { id: 'comp',    labelKey: 'tbComp',    Component: ProjectComponents  },
+  { id: 'revenue', labelKey: 'tbRevenue', Component: Revenue            },
+  { id: 'dist',    labelKey: 'tbDist',    Component: Distributions      },
+  { id: 'cashflow', labelKey: 'tbCash',   Component: CashFlows          },
+  { id: 'gallery', labelKey: 'tbGallery', Component: ProjectGallery     },
   { id: 'files',   labelKey: 'tbFiles2',  Component: ProjectFiles       },
 ];
+
+const ACTION_META = {
+  promote: { confirmKey: 'plPromoteConfirm', noteKey: 'plPromoteNote', labelKey: 'plPromote', color: 'var(--rasf-primary)' },
+  archive: { confirmKey: 'plArchiveConfirm', noteKey: 'plArchiveNote', labelKey: 'plArchive', color: '#6B5545' },
+  demote:  { confirmKey: 'plDemoteConfirm',  noteKey: 'plDemoteNote',  labelKey: 'plDemote',  color: '#6B5545' },
+};
 
 const STATUS_VARIANT   = { pipeline: 'blue', financing: 'amber', active: 'green', planning: 'blue', completed: 'purple' };
 const STATUS_LABEL_MAP = { pipeline: 'statusPipeline', financing: 'statusFin', active: 'statusActive', planning: 'statusPlan', completed: 'statusComp' };
@@ -50,6 +60,8 @@ export default function ProjectDetail() {
   const [editName, setEditName]               = useState('');
   const [editLocation, setEditLocation]       = useState('');
   const [editType, setEditType]               = useState('');
+  const [editOppDate, setEditOppDate]         = useState('');
+  const [editMapUrl, setEditMapUrl]           = useState('');
   const allProjects      = portfolioService.getAllProjects();
   const pipelineProjects = portfolioService.getPipelineProjects();
   const project = portfolioService.getProject(selectedProjectId ?? allProjects[0]?.id);
@@ -72,12 +84,26 @@ export default function ProjectDetail() {
     setEditName(project.name);
     setEditLocation(project.location ?? '');
     setEditType(project.type ?? 'residential');
+    setEditOppDate(project.opportunityDate ?? '');
+    setEditMapUrl(project.mapUrl ?? '');
     setEditing(true);
   };
 
   const saveEdit = () => {
     if (editName.trim()) {
-      const updates = { name: editName.trim(), location: editLocation.trim(), type: editType };
+      const updates = {
+        name: editName.trim(),
+        location: editLocation.trim(),
+        type: editType,
+        opportunityDate: editOppDate || null,
+      };
+
+      // رابط قوقل ماب → إحداثيات (نحدّث الموقع فقط لو انقرأ الرابط)
+      const url = editMapUrl.trim();
+      updates.mapUrl = url || null;
+      const coords = parseLatLng(url);
+      if (coords) { updates.lat = coords.lat; updates.lng = coords.lng; }
+      else if (!url) { updates.lat = null; updates.lng = null; }
 
       portfolioService.updateProject(project.id, updates);
       refreshPortfolio();
@@ -90,6 +116,10 @@ export default function ProjectDetail() {
   const handlePipelineAction = (action) => {
     if (action === 'promote') {
       portfolioService.promoteProject(project.id);
+      setOuterTab('active');
+    } else if (action === 'demote') {
+      portfolioService.demoteProject(project.id);
+      setOuterTab('pipeline');
     } else if (action === 'archive') {
       portfolioService.archiveProject(project.id);
       const remaining = portfolioService.getAllProjects();
@@ -104,6 +134,10 @@ export default function ProjectDetail() {
 
   const handleDelete = (id) => {
     portfolioService.removeProject(id);
+    // Full-sync (savePortfolio) only upserts — it never removes rows, so the
+    // deleted project must be dropped from Supabase explicitly or it reappears
+    // on the next reload.
+    SupabaseDataService.deleteProject(id);
     refreshPortfolio();
     setConfirmDeleteId(null);
     if (selectedProjectId === id) {
@@ -171,18 +205,18 @@ export default function ProjectDetail() {
             borderRadius: 16, padding: 28, minWidth: 320, maxWidth: 400,
           }} onClick={e => e.stopPropagation()}>
             <div className="text-base font-bold mb-2" style={{ color: 'var(--text-hi)' }}>
-              {confirmAction === 'promote' ? t('plPromoteConfirm') : t('plArchiveConfirm')}
+              {t(ACTION_META[confirmAction].confirmKey)}
             </div>
             <div className="text-sm mb-5" style={{ color: 'var(--text-muted)' }}>
-              {confirmAction === 'promote' ? t('plPromoteNote') : t('plArchiveNote')}
+              {t(ACTION_META[confirmAction].noteKey)}
             </div>
             <div className="flex gap-3">
               <button onClick={() => handlePipelineAction(confirmAction)} style={{
                 flex: 1, padding: '9px 0', borderRadius: 9, fontWeight: 700, fontSize: 13,
-                background: confirmAction === 'promote' ? 'var(--rasf-primary)' : '#6B5545',
+                background: ACTION_META[confirmAction].color,
                 color: '#fff', border: 'none', cursor: 'pointer',
               }}>
-                {confirmAction === 'promote' ? t('plPromote') : t('plArchive')}
+                {t(ACTION_META[confirmAction].labelKey)}
               </button>
               <button onClick={() => setConfirmAction(null)} style={{
                 flex: 1, padding: '9px 0', borderRadius: 9, fontWeight: 600, fontSize: 13,
@@ -331,6 +365,25 @@ export default function ProjectDetail() {
                   </button>
                 </>
               )}
+
+              {/* Active-only action: send back to the pipeline */}
+              {project.status !== 'pipeline' && project.status !== 'archived' && (
+                <button
+                  onClick={() => setConfirmAction('demote')}
+                  style={{
+                    background: 'var(--bg-app)', color: 'var(--text-muted)',
+                    border: '1px solid var(--border)', borderRadius: 7,
+                    padding: '4px 12px', fontSize: 11, fontWeight: 600,
+                    cursor: 'pointer', transition: 'all .15s',
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--rasf-accent)'}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+                >
+                  <ArrowUp size={12} style={{ transform: 'rotate(180deg)' }} />
+                  {t('plDemote')}
+                </button>
+              )}
             </div>
 
             {editing ? (
@@ -350,6 +403,37 @@ export default function ProjectDetail() {
                   className="text-sm rounded-lg px-3 py-1"
                   style={{ background: 'var(--bg-card-strong)', border: '1px solid var(--border-soft)', outline: 'none', color: 'var(--text-lo)', minWidth: 180 }}
                 />
+                <label className="flex items-center gap-2 text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                  تاريخ الفرصة:
+                  <input
+                    type="date"
+                    value={editOppDate}
+                    onChange={e => setEditOppDate(e.target.value)}
+                    className="text-sm rounded-lg px-3 py-1"
+                    style={{ background: 'var(--bg-card-strong)', border: '1px solid var(--border-soft)', outline: 'none', color: 'var(--text-lo)', colorScheme: 'dark' }}
+                  />
+                </label>
+                <div className="flex flex-col gap-1 mt-1">
+                  <input
+                    value={editMapUrl}
+                    onChange={e => setEditMapUrl(e.target.value)}
+                    placeholder="رابط الموقع (قوقل ماب)"
+                    className="text-sm rounded-lg px-3 py-1"
+                    style={{ background: 'var(--bg-card-strong)', border: '1px solid var(--border-soft)', outline: 'none', color: 'var(--text-lo)', minWidth: 260 }}
+                    dir="ltr"
+                  />
+                  {editMapUrl.trim() && (
+                    parseLatLng(editMapUrl) ? (
+                      <span style={{ fontSize: 11, color: '#10b981' }}>
+                        ✅ الموقع: {parseLatLng(editMapUrl).lat.toFixed(5)}, {parseLatLng(editMapUrl).lng.toFixed(5)}
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: 11, color: '#f59e0b' }}>
+                        ⚠️ تعذّر استخراج الإحداثيات — {isShortMapLink(editMapUrl) ? 'الرابط مختصر، افتحه بالمتصفح وانسخ الرابط الكامل' : 'استخدم الرابط الكامل من قوقل ماب'}
+                      </span>
+                    )
+                  )}
+                </div>
                 <div className="flex gap-2 flex-wrap mt-1">
                   {TYPE_OPTIONS.map(opt => (
                     <button

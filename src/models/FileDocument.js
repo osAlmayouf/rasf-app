@@ -5,14 +5,16 @@ export const FileCategory = Object.freeze({
   REPORTS:    'rep',
   CONTRACTS:  'con',
   DRAWINGS:   'drw',
+  IMAGES:     'img',
 });
 
-const ICONS = { pdf: '📄', xlsx: '📊', xls: '📊', xlsm: '📊', xlsb: '📊', doc: '📝', docx: '📝', dwg: '🏛️', png: '🖼️', jpg: '🖼️', jpeg: '🖼️' };
+const ICONS = { pdf: '📄', xlsx: '📊', xls: '📊', xlsm: '📊', xlsb: '📊', doc: '📝', docx: '📝', dwg: '🏛️', png: '🖼️', jpg: '🖼️', jpeg: '🖼️', webp: '🖼️', gif: '🖼️' };
 const CATEGORY_TAGS = {
   [FileCategory.FINANCIAL]: 'tag-amber',
   [FileCategory.REPORTS]:   'tag-blue',
   [FileCategory.CONTRACTS]: 'tag-green',
   [FileCategory.DRAWINGS]:  'tag-red',
+  [FileCategory.IMAGES]:    'tag-blue',
 };
 
 export class FileDocument extends Entity {

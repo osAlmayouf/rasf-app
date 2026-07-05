@@ -1,230 +1,191 @@
-import { Line } from 'react-chartjs-2';
+import { Bar } from 'react-chartjs-2';
 import { useState } from 'react';
 import { useApp } from '../../contexts/useApp';
 import { fmtYMode } from '../../utils/fmtMode';
 import GlassCard from '../common/GlassCard';
 
-/* ── Explanatory text ───────────────────────────────────────────────────────── */
-const EXPLAIN = {
-  ar: [
-    {
-      title: 'ما الذي يقيسه هذا الرسم؟',
-      body:  'الصافي التراكمي = مجموع (الإيرادات − المصروفات) من جميع المشاريع منذ 2024. القيمة السالبة = مرحلة الاستثمار. عند تقاطع الصفر = نقطة التعادل. القيمة الموجبة = مرحلة الربح.',
-    },
-    {
-      title: 'الخط المتصل مقابل المنقّط',
-      body:  'الخط المتصل يمثّل البيانات الفعلية (2024–2026). الخط المنقّط يمثّل التوقعات بناءً على التدفقات النقدية المحسوبة في الدراسات (2027–2030).',
-    },
-  ],
-  en: [
-    {
-      title: 'What does this chart measure?',
-      body:  'Cumulative net = sum of (revenues − expenses) across all projects since 2024. Negative = investment phase. Zero crossing = breakeven. Positive = profit phase.',
-    },
-    {
-      title: 'Solid vs dashed line',
-      body:  'The solid line represents actual data (2024–2026). The dashed line represents projections based on the study cash flows (2027–2030).',
-    },
-  ],
-};
+const TARGET_ROE   = 14.5;
+const SECONDARY    = '#8A6D51';                 // كراميل غامق (ثانوي على الهوية)
+const TARGET_COLOR = 'rgba(193,122,106,0.8)';   // تيراكوتا لخط المستهدف
 
-/* ── Chart.js glow plugin ───────────────────────────────────────────────────── */
-const glowPlugin = {
-  id: 'rasf-glow',
-  beforeDatasetsDraw(chart) {
-    chart.ctx.save();
-    chart.ctx.shadowColor = 'rgba(164,144,126,0.35)';
-    chart.ctx.shadowBlur  = 12;
+const VIEWS = [
+  { key: 'returns', ar: 'المؤشرات',          en: 'Returns' },
+  { key: 'revenue', ar: 'الاستثمار/الإيراد', en: 'Inv/Rev' },
+];
+
+const truncate = (s, n = 14) => (s && s.length > n ? s.slice(0, n - 1) + '…' : (s ?? ''));
+
+// خط أفقي عند الحد المستهدف (لعرض المؤشرات)
+const targetLinePlugin = {
+  id: 'roeTarget',
+  afterDatasetsDraw(chart) {
+    const y = chart.scales.y;
+    if (!y) return;
+    const yPos = y.getPixelForValue(TARGET_ROE);
+    const { left, right } = chart.chartArea;
+    const { ctx } = chart;
+    ctx.save();
+    ctx.strokeStyle = TARGET_COLOR;
+    ctx.lineWidth = 1.2;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    ctx.moveTo(left, yPos);
+    ctx.lineTo(right, yPos);
+    ctx.stroke();
+    ctx.restore();
   },
-  afterDatasetsDraw(chart) { chart.ctx.restore(); },
 };
 
-function getGridColor() {
-  return getComputedStyle(document.documentElement).getPropertyValue('--border').trim() || '#1e293b';
-}
-
-/* ── Component ──────────────────────────────────────────────────────────────── */
 export default function PortfolioChart() {
-  const { t, lang, portfolioService, displayMode } = useApp();
+  const { lang, portfolioService, displayMode } = useApp();
   const [showInfo, setShowInfo] = useState(false);
-
-  const yearlyData  = portfolioService.getYearlyPortfolioData();
-  const labels      = yearlyData.map(d => d.year);
-  const currentYear = String(new Date().getFullYear());
-  const currentIdx  = yearlyData.findIndex(d => d.year === currentYear);
-
-  // Past/present: solid line (2024 → currentYear)
-  const pastSeries = yearlyData.map((d, i) =>
-    i <= currentIdx ? d.cumNet : null,
-  );
-
-  // Future projection: dashed line (currentYear → 2030), shared first point
-  const futureSeries = yearlyData.map((d, i) =>
-    i >= currentIdx ? d.cumNet : null,
-  );
-
-  const gridColor = getGridColor();
-  const tickColor = '#7A6E67';
+  const [view, setView] = useState('returns');
   const isAr = lang === 'ar';
 
-  const BASE_DATASET = {
-    pointRadius: 4,
-    pointHoverRadius: 6,
-    pointBorderWidth: 2.5,
-    tension: 0.35,
-    fill: false,
+  const projects = [...portfolioService.getAllProjects()];
+
+  const styles       = getComputedStyle(document.documentElement);
+  const brandPrimary = styles.getPropertyValue('--rasf-primary').trim() || '#CEB69F';
+  const gridColor    = styles.getPropertyValue('--border').trim() || '#1e293b';
+  const tickColor    = '#7A6E67';
+
+  const axis = (yCallback) => ({
+    x: { ticks: { color: tickColor, font: { size: 10, weight: '500' }, maxRotation: 30, minRotation: 0 }, grid: { display: false }, border: { display: false } },
+    y: { ticks: { color: tickColor, font: { size: 10 }, callback: yCallback }, grid: { color: gridColor, drawBorder: false }, border: { display: false } },
+  });
+
+  const money = v => fmtYMode(v, displayMode);
+
+  // ── بناء بيانات كل عرض ─────────────────────────────────────────────────
+  let chartData, chartOptions, chartEl, legend, footer, subtitle;
+
+  if (view === 'returns') {
+    const rows = projects.map(p => ({ name: p.name, roe: p.roeAnnual ?? 0, irr: p.irr ?? 0 })).sort((a, b) => b.roe - a.roe);
+    chartData = {
+      labels: rows.map(p => truncate(p.name)),
+      datasets: [
+        { label: isAr ? 'ROE سنوي' : 'Annual ROE', data: rows.map(p => p.roe), backgroundColor: brandPrimary, borderRadius: 5 },
+        { label: 'IRR', data: rows.map(p => p.irr), backgroundColor: SECONDARY, borderRadius: 5 },
+      ],
+    };
+    chartOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.dataset.label}: ${Number(c.raw).toFixed(1)}%` } } }, scales: axis(v => `${v}%`) };
+    chartEl = <Bar data={chartData} options={chartOptions} plugins={[targetLinePlugin]} />;
+    legend = [
+      { color: brandPrimary, label: 'ROE' },
+      { color: SECONDARY, label: 'IRR' },
+      { color: TARGET_COLOR, label: isAr ? 'المستهدف' : 'Target', dashed: true },
+    ];
+    const top = rows[0];
+    const avgRoe = rows.length ? rows.reduce((s, p) => s + p.roe, 0) / rows.length : 0;
+    const below = rows.filter(p => p.roe < TARGET_ROE).length;
+    footer = [
+      { label: isAr ? 'أعلى عائد' : 'Top ROE', value: top ? `${top.roe.toFixed(1)}%` : '—', color: 'var(--rasf-primary)', sub: top ? truncate(top.name, 16) : '' },
+      { label: isAr ? 'متوسط ROE' : 'Avg ROE', value: `${avgRoe.toFixed(1)}%`, color: 'var(--rasf-primary)' },
+      { label: isAr ? 'دون المستهدف' : 'Below target', value: below, color: below ? '#C17A6A' : 'var(--rasf-primary)' },
+    ];
+    subtitle = isAr ? 'مقارنة عوائد المشاريع القائمة — ROE و IRR' : 'Active project returns — ROE & IRR';
+
+  } else {
+    const rows = projects.map(p => ({ name: p.name, inv: p.investmentM ?? 0, rev: p.costs?.totalRevenue ?? 0 })).sort((a, b) => b.rev - a.rev);
+    chartData = {
+      labels: rows.map(p => truncate(p.name)),
+      datasets: [
+        { label: isAr ? 'الاستثمار' : 'Investment', data: rows.map(p => p.inv), backgroundColor: brandPrimary, borderRadius: 5 },
+        { label: isAr ? 'الإيراد المتوقع' : 'Expected revenue', data: rows.map(p => p.rev), backgroundColor: SECONDARY, borderRadius: 5 },
+      ],
+    };
+    chartOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.dataset.label}: ${money(c.raw)}` } } }, scales: axis(money) };
+    chartEl = <Bar data={chartData} options={chartOptions} />;
+    legend = [
+      { color: brandPrimary, label: isAr ? 'الاستثمار' : 'Investment' },
+      { color: SECONDARY, label: isAr ? 'الإيراد المتوقع' : 'Expected revenue' },
+    ];
+    const totalInv = rows.reduce((s, p) => s + p.inv, 0);
+    const totalRev = rows.reduce((s, p) => s + p.rev, 0);
+    const profit = totalRev - totalInv;
+    footer = [
+      { label: isAr ? 'إجمالي الاستثمار' : 'Total investment', value: money(totalInv), color: 'var(--rasf-primary)' },
+      { label: isAr ? 'إجمالي الإيراد' : 'Total revenue', value: money(totalRev), color: SECONDARY },
+      { label: isAr ? 'صافي الربح المتوقع' : 'Expected profit', value: money(profit), color: profit >= 0 ? 'var(--rasf-primary)' : '#C17A6A' },
+    ];
+    subtitle = isAr ? 'الاستثمار مقابل الإيراد المتوقع لكل مشروع' : 'Investment vs expected revenue per project';
+  }
+
+  const EXPLAIN = {
+    returns: isAr ? 'مقارنة ROE و IRR لكل مشروع قائم، مرتّبة تنازليًا. الخط المتقطّع = الحد المستهدف (14.5%).' : 'ROE & IRR per active project, sorted. Dashed line = 14.5% target.',
+    revenue: isAr ? 'الاستثمار مقابل الإيراد المتوقع لكل مشروع — الفرق يمثّل الربح المتوقع.' : 'Investment vs expected revenue per project — the gap is expected profit.',
   };
-
-  const data = {
-    labels,
-    datasets: [
-      {
-        ...BASE_DATASET,
-        label:                isAr ? 'الفعلي' : 'Actual',
-        data:                 pastSeries,
-        borderColor:          '#A4907E',
-        pointBackgroundColor: '#A4907E',
-        pointBorderColor:     'rgba(164,144,126,0.3)',
-        backgroundColor:      'rgba(164,144,126,0.08)',
-        borderWidth:          2.5,
-        fill:                 true,
-      },
-      {
-        ...BASE_DATASET,
-        label:                isAr ? 'توقعات' : 'Projected',
-        data:                 futureSeries,
-        borderColor:          'rgba(164,144,126,0.45)',
-        pointBackgroundColor: 'rgba(164,144,126,0.45)',
-        pointBorderColor:     'rgba(164,144,126,0.15)',
-        backgroundColor:      'transparent',
-        borderWidth:          2,
-        borderDash:           [6, 4],
-      },
-    ],
-  };
-
-  const OPTIONS = {
-    responsive: true,
-    maintainAspectRatio: false,
-    spanGaps: false,
-    plugins: { legend: { display: false } },
-    scales: {
-      x: {
-        ticks:  { color: tickColor, font: { size: 11, weight: '500' } },
-        grid:   { color: gridColor, drawBorder: false },
-        border: { display: false },
-      },
-      y: {
-        ticks: {
-          color: tickColor,
-          font: { size: 10 },
-          callback: v => fmtYMode(v, displayMode),
-        },
-        grid: {
-          color: ctx => ctx.tick.value === 0
-            ? 'rgba(180,180,180,0.35)'
-            : gridColor,
-          lineWidth: ctx => ctx.tick.value === 0 ? 1.5 : 1,
-          drawBorder: false,
-        },
-        border: { display: false },
-      },
-    },
-  };
-
-  // Footer stats — mode-aware formatting (no M/B abbreviations)
-  const fmtStat = (v) => {
-    if (v == null) return '—';
-    return fmtYMode(v, displayMode);
-  };
-
-  const last    = yearlyData[yearlyData.length - 1];
-  const current = yearlyData[currentIdx];
-  const breakEvenYear = yearlyData.find(d => d.cumNet >= 0)?.year ?? '—';
-
-  // Subtitle shows the correct unit based on display mode
-  const chartSubUnit = displayMode === 'full'
-    ? (isAr ? '(ريال)' : '(SAR)')
-    : (isAr ? '(ألف ريال)' : '(SAR 000)');
-  const chartSub = isAr
-    ? `الصافي التراكمي للتدفقات النقدية ${chartSubUnit} — 2024 إلى 2030`
-    : `Cumulative net cash flows ${chartSubUnit} — 2024 to 2030`;
 
   return (
     <GlassCard>
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div className="flex justify-between items-start mb-4">
+      <div className="flex justify-between items-start mb-3">
         <div>
-          <div className="section-hd">{t('dCh1t')}</div>
-          <div className="section-sub">{chartSub}</div>
+          <div className="section-hd">{isAr ? 'أداء المحفظة' : 'Portfolio Performance'}</div>
+          <div className="section-sub">{subtitle}</div>
         </div>
-        <div className="flex items-center gap-2">
-          {/* Legend */}
-          <span className="flex items-center gap-1.5" style={{ fontSize: 11, color: 'var(--text-lo)' }}>
-            <span style={{ width: 16, height: 2.5, background: 'var(--rasf-primary)', display: 'inline-block', borderRadius: 2 }} />
-            {isAr ? 'فعلي' : 'Actual'}
-          </span>
-          <span className="flex items-center gap-1.5" style={{ fontSize: 11, color: '#7A6E67' }}>
-            <span style={{
-              width: 16, height: 0, display: 'inline-block',
-              borderTop: '2.5px dashed rgba(164,144,126,0.55)',
-            }} />
-            {isAr ? 'توقعات' : 'Projected'}
-          </span>
-          <button
-            onClick={() => setShowInfo(v => !v)}
-            style={{ color: showInfo ? 'var(--rasf-primary)' : 'var(--text-faint)', fontSize: 14, background: 'none', border: 'none', cursor: 'pointer', padding: '2px 5px' }}
-          >
-            ⓘ
-          </button>
+        <button
+          onClick={() => setShowInfo(v => !v)}
+          style={{ color: showInfo ? 'var(--rasf-primary)' : 'var(--text-faint)', fontSize: 14, background: 'none', border: 'none', cursor: 'pointer', padding: '2px 5px' }}
+        >
+          ⓘ
+        </button>
+      </div>
+
+      {/* ── View switcher + legend ──────────────────────────────────────── */}
+      <div className="flex justify-between items-center gap-2 mb-3 flex-wrap">
+        <div style={{ display: 'inline-flex', gap: 2, background: 'var(--bg-app)', border: '1px solid var(--border)', borderRadius: 9, padding: 3 }}>
+          {VIEWS.map(v => (
+            <button
+              key={v.key}
+              onClick={() => setView(v.key)}
+              style={{
+                padding: '4px 12px', borderRadius: 6, fontSize: 11, fontWeight: 600, border: 'none', cursor: 'pointer', transition: 'all .15s',
+                background: view === v.key ? 'var(--rasf-primary)' : 'transparent',
+                color: view === v.key ? 'var(--bg-app)' : 'var(--text-muted)',
+              }}
+            >
+              {isAr ? v.ar : v.en}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          {legend.map(l => (
+            <span key={l.label} className="flex items-center gap-1.5" style={{ fontSize: 11, color: 'var(--text-lo)' }}>
+              <span style={l.dashed
+                ? { width: 16, height: 0, display: 'inline-block', borderTop: `2px dashed ${l.color}` }
+                : { width: 10, height: 10, display: 'inline-block', borderRadius: 3, background: l.color }} />
+              {l.label}
+            </span>
+          ))}
         </div>
       </div>
 
       {/* ── Info panel ──────────────────────────────────────────────────── */}
       {showInfo && (
-        <div className="rounded-xl p-3 mb-4 space-y-2 text-xs"
-          style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-tag-warm)' }}>
-          {EXPLAIN[lang].map(item => (
-            <div key={item.title}>
-              <div className="font-semibold mb-0.5" style={{ color: 'var(--rasf-primary)' }}>{item.title}</div>
-              <div style={{ color: 'var(--text-muted)', lineHeight: 1.65 }}>{item.body}</div>
-            </div>
-          ))}
+        <div className="rounded-xl p-3 mb-3 text-xs"
+          style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-tag-warm)', color: 'var(--text-muted)', lineHeight: 1.65 }}>
+          {EXPLAIN[view]}
         </div>
       )}
 
       {/* ── Chart ───────────────────────────────────────────────────────── */}
       <div style={{ position: 'relative', height: 200 }}>
-        <Line data={data} options={OPTIONS} plugins={[glowPlugin]} />
+        {chartEl}
       </div>
 
       {/* ── Footer stats ────────────────────────────────────────────────── */}
       <div className="grid grid-cols-3 gap-3 mt-4 text-center">
-        <div className="glass rounded-xl py-2.5 px-3">
-          <div style={{ color: '#7A6E67', fontSize: 10, marginBottom: 2 }}>
-            {isAr ? 'الوضع الحالي' : 'Current'}
+        {footer.map(f => (
+          <div key={f.label} className="glass rounded-xl py-2.5 px-3">
+            <div style={{ color: '#7A6E67', fontSize: 10, marginBottom: 2 }}>{f.label}</div>
+            <div style={{ color: f.color, fontWeight: 700, fontSize: 13 }}>{f.value}</div>
+            {f.sub && (
+              <div style={{ color: 'var(--text-muted)', fontSize: 9, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.sub}</div>
+            )}
           </div>
-          <div style={{ color: current?.cumNet >= 0 ? '#10b981' : '#ef4444', fontWeight: 700, fontSize: 13 }}>
-            {fmtStat(current?.cumNet)}
-          </div>
-        </div>
-        <div className="glass rounded-xl py-2.5 px-3">
-          <div style={{ color: '#7A6E67', fontSize: 10, marginBottom: 2 }}>
-            {isAr ? 'نقطة التعادل' : 'Breakeven'}
-          </div>
-          <div style={{ color: 'var(--rasf-primary)', fontWeight: 700, fontSize: 13 }}>
-            {breakEvenYear}
-          </div>
-        </div>
-        <div className="glass rounded-xl py-2.5 px-3">
-          <div style={{ color: '#7A6E67', fontSize: 10, marginBottom: 2 }}>
-            {isAr ? 'العائد المتوقع 2030' : 'Expected 2030'}
-          </div>
-          <div style={{ color: '#10b981', fontWeight: 700, fontSize: 13 }}>
-            {fmtStat(last?.cumNet)}
-          </div>
-        </div>
+        ))}
       </div>
 
     </GlassCard>

@@ -14,6 +14,7 @@ import AdminPanel        from './components/admin/AdminPanel';
 import LoginPage        from './components/auth/LoginPage';
 import ComingSoonPage   from './components/common/ComingSoonPage';
 import CommercialPage   from './components/commercial/CommercialPage';
+import MapPage          from './components/map/MapPage';
 
 function PageRouter() {
   const { currentPage } = useApp();
@@ -21,6 +22,7 @@ function PageRouter() {
     case 'dashboard':  return <Dashboard />;
     case 'project':    return <ProjectDetail />;
     case 'files':      return <FileRepository />;
+    case 'map':        return <MapPage />;
     case 'pipeline':           return <PipelinePage />;
     case 'pipeline-dashboard': return <PipelineDashboard />;
     case 'admin':      return <AdminPanel />;

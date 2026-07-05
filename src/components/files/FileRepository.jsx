@@ -7,8 +7,8 @@ import FileViewer       from '../common/FileViewer';
 import Tag              from '../common/Tag';
 import { FolderOpen, Eye, Download, Upload, X, Trash2 } from 'lucide-react';
 
-const CATEGORY_VARIANT = { fin: 'amber', rep: 'blue', con: 'green', drw: 'red' };
-const CATEGORY_LABEL   = { fin: 'fcFin', rep: 'fcRep', con: 'fcCon', drw: 'fcDrw' };
+const CATEGORY_VARIANT = { fin: 'amber', rep: 'blue', con: 'green', drw: 'red', img: 'blue' };
+const CATEGORY_LABEL   = { fin: 'fcFin', rep: 'fcRep', con: 'fcCon', drw: 'fcDrw', img: 'fcImg' };
 
 const FILTER_BUTTONS = [
   { cat: 'all',                  labelKey: 'fcAll' },
@@ -16,6 +16,7 @@ const FILTER_BUTTONS = [
   { cat: FileCategory.REPORTS,   labelKey: 'fcRep' },
   { cat: FileCategory.CONTRACTS, labelKey: 'fcCon' },
   { cat: FileCategory.DRAWINGS,  labelKey: 'fcDrw' },
+  { cat: FileCategory.IMAGES,    labelKey: 'fcImg' },
 ];
 
 const CATEGORIES = [
@@ -23,6 +24,7 @@ const CATEGORIES = [
   { value: FileCategory.REPORTS,   labelKey: 'fcRep' },
   { value: FileCategory.CONTRACTS, labelKey: 'fcCon' },
   { value: FileCategory.DRAWINGS,  labelKey: 'fcDrw' },
+  { value: FileCategory.IMAGES,    labelKey: 'fcImg' },
 ];
 
 function UploadModal({ file, projects, onConfirm, onCancel, t }) {

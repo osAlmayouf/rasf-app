@@ -15,6 +15,7 @@ export class PortfolioService {
 
   archiveProject(id)  { this.#portfolio.archiveProject(id); }
   promoteProject(id)  { this.#portfolio.promoteProject(id); }
+  demoteProject(id)   { this.#portfolio.demoteProject(id); }
   restoreProject(id)  { this.#portfolio.restoreProject(id); }
 
   addProject(data) {

@@ -93,7 +93,8 @@ export class Portfolio extends Entity {
     const SIMPLE_FIELDS = [
       'name', 'type', 'progress', 'phases', 'milestones', 'status',
       'investmentM', 'totalInvestment', 'irr', 'roi', 'roeAnnual',
-      'moic', 'paybackYears', 'deliveryDate', 'startDate',
+      'moic', 'paybackYears', 'deliveryDate', 'startDate', 'opportunityDate',
+      'lat', 'lng', 'mapUrl',
       'area', 'farValue', 'aboveGradeGBA', 'belowGradeGBA',
       'totalGBA', 'nsaArea', 'landscapeArea', 'units', 'unitsSold', 'avgUnitPrice',
       'componentBreakdown', 'revenueBreakdown', 'investors', 'cashFlows',
@@ -219,6 +220,16 @@ export class Portfolio extends Entity {
       project.phases      = defaultPhases();
       project.progress    = 0;
       project.lastUpdated = today();
+    }
+  }
+
+  // Send an active project back to the pipeline (reverse of promoteProject)
+  demoteProject(id) {
+    const project = this._projects.find(p => p.id === id);
+    if (project && project.status !== 'pipeline' && project.status !== 'archived') {
+      project.status            = 'pipeline';
+      project.lifecycleCompleted = null;   // restart the study/evaluation phases
+      project.lastUpdated       = today();
     }
   }
 

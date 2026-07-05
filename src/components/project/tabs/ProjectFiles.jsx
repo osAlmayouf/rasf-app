@@ -32,7 +32,8 @@ export default function ProjectFiles({ project }) {
 
   const fetchFiles = useCallback(async () => {
     const data = await fileService.getByProject(project.id);
-    setFiles(data);
+    // صور المعرض لها تبويب خاص — نستبعدها من جدول الملفات
+    setFiles(data.filter(f => f.category !== FileCategory.IMAGES));
   }, [fileService, project.id]);
 
   useEffect(() => { fetchFiles(); }, [fetchFiles]);

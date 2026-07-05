@@ -15,13 +15,17 @@ const LC_KEYS = ['lc1n', 'lc2n', 'lc3n', 'lc4n', 'lc5n'];
 // القيم الافتراضية بحسب الحالة (نفس منطق ProjectLifecycle)
 const STATUS_DEFAULT_COMPLETED = { planning: 1, financing: 2, active: 3, completed: 5 };
 
-// يقرأ المرحلة الحالية من localStorage (نفس المفتاح المستخدم في ProjectLifecycle)
-function getLifecyclePhaseKey(projectId, status) {
-  let completed = STATUS_DEFAULT_COMPLETED[status] ?? 0;
-  try {
-    const stored = localStorage.getItem(`lifecycle_completed_${projectId}`);
-    if (stored !== null) completed = Number(stored);
-  } catch {}
+// المرحلة الحالية من بيانات المشروع (المتزامنة مع Supabase)، مع رجوع لـ localStorage
+// القديم للترحيل، ثم الافتراضي بحسب الحالة — نفس منطق ProjectLifecycle.
+function getLifecyclePhaseKey(project) {
+  let completed = project?.lifecycleCompleted;
+  if (completed == null) {
+    try {
+      const stored = localStorage.getItem(`lifecycle_completed_${project.id}`);
+      if (stored !== null) completed = Number(stored);
+    } catch { /* ignore */ }
+  }
+  if (completed == null) completed = STATUS_DEFAULT_COMPLETED[project?.status] ?? 0;
   if (completed >= 5) return 'lc5n';
   return LC_KEYS[completed] ?? 'lc1n';
 }
@@ -193,7 +197,7 @@ export default function ProjectsTable({ extraProjects = [] }) {
 
                 <td className="px-6 py-4">
                   {(() => {
-                    const phaseKey = getLifecyclePhaseKey(p.id, p.status);
+                    const phaseKey = getLifecyclePhaseKey(p);
                     const phaseIdx = LC_KEYS.indexOf(phaseKey);
                     return (
                       <Tag variant={LC_VARIANT[phaseIdx] ?? 'blue'}>

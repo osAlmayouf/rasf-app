@@ -194,6 +194,9 @@ export default function ProjectComponents({ project }) {
   // Total net saleable area (NSA) = sum of each component's NSA
   const totalNsa = rawBreakdown.reduce((sum, b) => sum + (Number(b.nsa) || 0), 0);
 
+  // Total gross building area (GBA) = sum of each component's GBA
+  const totalGba = rawBreakdown.reduce((sum, b) => sum + (Number(b.gba) || Number(b.area) || 0), 0);
+
   // Parking / basement
   const amenities    = project.components?.amenities ?? {};
   const totalParking = amenities.parking || 0;
@@ -240,9 +243,10 @@ export default function ProjectComponents({ project }) {
         {/* Summary stats */}
         <GlassCard>
           <div className="section-hd mb-4">ملخص المكونات</div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             {[
               { label: 'إجمالي الوحدات',    value: fmtNum(project.units),    icon: <Home size={16} /> },
+              { label: 'إجمالي مساحة البناء', value: totalGba > 0 ? fmtArea(totalGba) : (project.gbaArea || '—'), icon: <Building2 size={16} /> },
               { label: 'صافي NSA',           value: totalNsa > 0 ? fmtArea(totalNsa) : (project.nsaArea || '—'), icon: <Tag size={16} /> },
               { label: 'مساحة اللاند سكيب', value: (project.landscapeArea && project.landscapeArea !== '—') ? project.landscapeArea : '—', icon: <TreePine size={16} /> },
             ].map((item, i) => (
