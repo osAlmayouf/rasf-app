@@ -426,7 +426,7 @@ const FINANCING_ITEM_PATTERNS = [
   { key: 'developerCashSubscription',   labels: ['الأشتراك النقدي من المطور', 'الاشتراك النقدي من المطور'] },
   { key: 'developerInKindSubscription', labels: ['الأشتراك العيني من المطور', 'الاشتراك العيني من المطور'] },
   { key: 'landOwnerInKind',             labels: ['الإشتراك العيني من مالك الأرض', 'الاشتراك العيني من مالك الأرض', 'الأشتراك العيني من مالك الأرض'] },
-  { key: 'bankFinancing',               labels: ['إجمالي التمويل البنكي'] },
+  { key: 'bankFinancing',               labels: ['إجمالي التمويل البنكي', 'التمويل البنكي'] },
   { key: 'offplanSales',                labels: ['البيع على الخارطة', 'قيم البيع على الخارطة'] },
   { key: 'otherSources',                labels: ['مصادر أخرى'] },
 ];
@@ -441,35 +441,86 @@ function parseFinancingItems(bySheet, wb, allKeywords) {
     wb.SheetNames.filter(n => n === 'Sheet1')
   );
 
+  // ── Anchor on the authoritative capital-structure block ──────────────────────
+  // The real funding table sits near the top of the study sheet (rows ~19–30).
+  // But many studies also embed a SECOND, inflated sensitivity/scenario table
+  // further down the same sheet (rows ~380), plus broken template copies on
+  // Sheet1. Scanning the whole sheet per label lets a zero/blank/sub-million row
+  // in the real table "fall through" and latch onto one of those other tables —
+  // producing a funding sum that no longer reconciles to the project cost
+  // (e.g. المدينة-القاسم: 468M funding vs 344M cost). So we lock onto the FIRST
+  // financing label found in a primary sheet and only read values in a row
+  // window around it, keeping every item inside the one authoritative table.
+  const anchorLabels = FINANCING_ITEM_PATTERNS.flatMap(p => p.labels.map(l => l.toLowerCase()));
+  let anchorSheet = null, anchorRow = -1;
+  for (const sheetName of sheetOrder) {
+    for (const cell of (bySheet[sheetName] ?? [])) {
+      if (typeof cell.v !== 'string') continue;
+      const lower = cell.v.trim().toLowerCase();
+      if (anchorLabels.some(l => lower === l || lower.startsWith(l))) {
+        anchorSheet = sheetName; anchorRow = cell.r; break;
+      }
+    }
+    if (anchorSheet) break;
+  }
+  if (!anchorSheet) return null;
+  const ROW_LO = anchorRow - 3;
+  const ROW_HI = anchorRow + 15; // block spans ~12 rows; stop short of the % restatement block (~row +22)
+  const inWindow = (sheetName, r) => sheetName === anchorSheet && r >= ROW_LO && r <= ROW_HI;
+
+  // Reads the value adjacent to a matching label cell; returns the amount in
+  // millions, or 0 when the label exists but carries no usable value.
+  const readItem = (key, labels, sheetName, cell) => {
+    const lower = cell.v.trim().toLowerCase();
+    // Skip off-plan combined revenue labels
+    if (key === 'offplanSales' && OFFPLAN_EXCLUSIONS.some(ex => lower.includes(ex.toLowerCase()))) return null;
+    if (!labels.some(l => lower === l.toLowerCase() || lower.startsWith(l.toLowerCase()))) return null;
+    // Financing values sit immediately to the right of the label — keep the scan
+    // tight (2 cols, same row) so a stray number further along the row can't be
+    // mistaken for the amount (جمعية هداه latched a "7" ten columns over).
+    const adj = getAdjacentValue(bySheet, sheetName, cell.r, cell.c, allKeywords, 2, 1);
+    if (!adj) return 0;
+    const displayStr = adj.w || String(adj.v);
+    if (displayStr.trim().endsWith('%')) return 0;
+    const n = normalizeNum(adj.v);
+    if (n == null || n <= 0) return 0;
+    return toMillions(n) || 0;
+  };
+
   for (const { key, labels } of FINANCING_ITEM_PATTERNS) {
-    let found = false;
-    // Once the item's label appears in a primary sheet (Study/Summary/…), trust
-    // that sheet's value — even if it's 0 — and do NOT fall back to Sheet1, which
-    // is a broken template copy carrying a constant placeholder (e.g. 23) that
-    // would otherwise overwrite a legitimate 0 (fund-manager / developer-cash subs).
+    // Pass A — the authoritative block. If the label appears in the window, that
+    // block OWNS this line: take its value if usable, otherwise record nothing.
+    // Never fall through, so a legitimate 0 (or sub-million) can't latch onto the
+    // inflated scenario table lower in the sheet (المدينة-القاسم / جمعية هداه).
+    let seenInBlock = false;
+    for (const cell of (bySheet[anchorSheet] ?? [])) {
+      if (!inWindow(anchorSheet, cell.r) || typeof cell.v !== 'string') continue;
+      const m = readItem(key, labels, anchorSheet, cell);
+      if (m == null) continue;
+      seenInBlock = true;
+      if (m > 0) { result[key] = m; break; }
+    }
+    if (seenInBlock) continue;
+
+    // Pass B — the label is missing from the block (e.g. the cash-from-developer
+    // line the summary table omits: برج جدة carries it at a lower row). Fall back
+    // to the first usable occurrence elsewhere; the scenario-table labels never
+    // reach here because they all exist in the block already. Once the label
+    // shows up in a primary sheet (even with a 0), don't fall through to Sheet1 —
+    // it's a broken template copy carrying a constant placeholder (e.g. 23) that
+    // would otherwise masquerade as a real value (المدينة-القاسم developer-cash).
     let seenInPrimary = false;
     for (const sheetName of sheetOrder) {
-      if (found) break;
       if (sheetName === 'Sheet1' && seenInPrimary) break;
+      let done = false;
       for (const cell of (bySheet[sheetName] ?? [])) {
-        if (typeof cell.v !== 'string') continue;
-        const cellText = cell.v.trim();
-        const lower = cellText.toLowerCase();
-
-        // Skip off-plan combined revenue labels
-        if (key === 'offplanSales' && OFFPLAN_EXCLUSIONS.some(ex => lower.includes(ex.toLowerCase()))) continue;
-
-        if (!labels.some(l => lower === l.toLowerCase() || lower.startsWith(l.toLowerCase()))) continue;
+        if (inWindow(sheetName, cell.r) || typeof cell.v !== 'string') continue;
+        const m = readItem(key, labels, sheetName, cell);
+        if (m == null) continue;
         if (sheetName !== 'Sheet1') seenInPrimary = true;
-        const adj = getAdjacentValue(bySheet, sheetName, cell.r, cell.c, allKeywords);
-        if (!adj) continue;
-        const displayStr = adj.w || String(adj.v);
-        if (displayStr.trim().endsWith('%')) continue;
-        const n = normalizeNum(adj.v);
-        if (n == null || n <= 0) continue;
-        const m = toMillions(n);
-        if (m && m > 0) { result[key] = m; found = true; break; }
+        if (m > 0) { result[key] = m; done = true; break; }
       }
+      if (done) break;
     }
   }
   return Object.keys(result).length > 0 ? result : null;

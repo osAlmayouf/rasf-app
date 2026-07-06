@@ -94,7 +94,7 @@ export class Portfolio extends Entity {
       'name', 'type', 'progress', 'phases', 'milestones', 'status',
       'investmentM', 'totalInvestment', 'irr', 'roi', 'roeAnnual',
       'moic', 'paybackYears', 'deliveryDate', 'startDate', 'opportunityDate',
-      'lat', 'lng', 'mapUrl',
+      'lat', 'lng', 'mapUrl', 'contractSummary',
       'area', 'farValue', 'aboveGradeGBA', 'belowGradeGBA',
       'totalGBA', 'nsaArea', 'landscapeArea', 'units', 'unitsSold', 'avgUnitPrice',
       'componentBreakdown', 'revenueBreakdown', 'investors', 'cashFlows',

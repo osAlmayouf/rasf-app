@@ -17,7 +17,7 @@ function formatUpdateDate(lang) {
 }
 
 export default function TopBar() {
-  const { t, lang, toggleLang, theme, toggleTheme, currentPage, portfolioService, selectedProjectId, outerProjectTab } = useApp();
+  const { t, lang, toggleLang, theme, toggleTheme, currentPage, portfolioService, selectedProjectId } = useApp();
   const [exporting,  setExporting]  = useState(false);
   const [capturing,  setCapturing]  = useState(false);
 
@@ -46,9 +46,6 @@ export default function TopBar() {
 
   const getTitle = () => {
     if (currentPage === 'project') {
-      if (outerProjectTab === 'pipeline') {
-        return `${t('nProj')} — ${t('nPipelineDash')}`;
-      }
       const proj = portfolioService.getProject(selectedProjectId);
       if (!proj) return t('nProj');
       const section = proj.status === 'pipeline' ? t('ptPipeline') : t('ptProjLabel');

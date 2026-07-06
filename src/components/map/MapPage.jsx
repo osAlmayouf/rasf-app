@@ -63,7 +63,8 @@ export default function MapPage() {
   const containerRef = useRef(null);
   const mapRef       = useRef(null);
 
-  const all      = portfolioService.getAllProjects().filter(p => p.status !== 'archived');
+  // القائمة + تحت الدراسة (الاثنان يستثنيان المؤرشفة)
+  const all      = [...portfolioService.getAllProjects(), ...portfolioService.getPipelineProjects()];
   const located  = all.filter(p => isValidLatLng(p.lat, p.lng));
   const missing  = all.length - located.length;
   const sig      = located.map(p => `${p.id}:${p.lat},${p.lng}:${p.status}`).join('|');

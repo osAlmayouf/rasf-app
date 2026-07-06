@@ -94,8 +94,19 @@ export default function Revenue({ project }) {
   const offplan      = costs.offplanRevenue ?? financing.offplanSales ?? 0;
   const totalSales   = directSales + offplan
     || breakdown.reduce((s, b) => s + (b.totalSales ?? 0), 0);
+  // Effective annual rental for a component: the study's figure if present, else
+  // rate × NSA × occupancy (occupancy defaults to 100% only when the study omits it).
+  const annualRevOf = (b) => {
+    if ((b.annualRentalRevenue ?? 0) > 0) return b.annualRentalRevenue;
+    if ((b.rentalRatePerSqm ?? 0) > 0 && (b.nsa ?? 0) > 0) {
+      // rate (SAR/m²) × NSA (m²) is always raw SAR → millions directly, no ambiguity.
+      const occ = (b.annualOccupancy ?? 0) > 0 ? b.annualOccupancy / 100 : 1;
+      return parseFloat((b.rentalRatePerSqm * b.nsa * occ / 1_000_000).toFixed(2));
+    }
+    return null;
+  };
   const annualRental = costs.annualRentalRevenue
-    ?? breakdown.reduce((s, b) => s + (b.annualRentalRevenue ?? 0), 0);
+    || breakdown.reduce((s, b) => s + (annualRevOf(b) ?? 0), 0);
   const dailyRental  = costs.dailyRentalRevenue
     ?? breakdown.reduce((s, b) => s + (b.dailyAnnualRevenue ?? 0), 0);
   const noi          = annualRental + dailyRental;
@@ -378,15 +389,15 @@ export default function Revenue({ project }) {
                 <TH>وحدات التأجير</TH>
                 <TH>NSA (م²)</TH>
                 <TH>إيجار المتر / سنة</TH>
+                <TH>نسبة الإشغال</TH>
                 <TH>الإيراد السنوي</TH>
                 <TH>%</TH>
               </tr>
             </thead>
             <tbody>
               {rentRows.length > 0 ? rentRows.map(b => {
-                const calcRevenue = (b.rentalRatePerSqm ?? 0) > 0 && (b.nsa ?? 0) > 0
-                  ? toMillionsLocal(b.rentalRatePerSqm * b.nsa) : null;
-                const revenue = b.annualRentalRevenue ?? calcRevenue ?? 0;
+                const revenue = annualRevOf(b) ?? 0;
+                const isCalc  = !((b.annualRentalRevenue ?? 0) > 0) && revenue > 0;
                 const pct = annualRental > 0 && revenue > 0 ? (revenue / annualRental) * 100 : 0;
                 return (
                   <tr key={b.key} style={{ borderBottom: '1px solid var(--glass-line)' }}>
@@ -407,9 +418,12 @@ export default function Revenue({ project }) {
                         ? <span>{b.rentalRatePerSqm.toLocaleString()} <SARSymbol size="0.7em" /></span>
                         : '—'}
                     </TD>
+                    <TD style={{ color: 'var(--text-muted)' }}>
+                      {(b.annualOccupancy ?? 0) > 0 ? `${b.annualOccupancy}%` : '—'}
+                    </TD>
                     <TD style={{ fontWeight: 700, color: '#4f8ef7' }}>
                       {revenue > 0 ? fmt(revenue) : '—'}
-                      {calcRevenue != null && !b.annualRentalRevenue && revenue > 0 &&
+                      {isCalc &&
                         <span style={{ fontSize: 9, color: 'var(--text-faint)', marginRight: 4 }}>محتسب</span>}
                     </TD>
                     <TD style={{ minWidth: 60 }}>
@@ -421,12 +435,12 @@ export default function Revenue({ project }) {
                   </tr>
                 );
               }) : (
-                <EmptyRow cols={6} msg={annualRental > 0 ? 'إجمالي إيراد إيجاري — بيانات المكونات غير متوفرة' : 'لا توجد بيانات تأجير سنوي'} />
+                <EmptyRow cols={7} msg={annualRental > 0 ? 'إجمالي إيراد إيجاري — بيانات المكونات غير متوفرة' : 'لا توجد بيانات تأجير سنوي'} />
               )}
               {rentRows.length > 1 && (
                 <tr style={{ borderTop: '2px solid var(--glass-line)', background: 'rgba(79,142,247,0.04)' }}>
                   <TD style={{ fontWeight: 700, color: 'var(--text-muted)' }}>الإجمالي السنوي</TD>
-                  <TD /><TD /><TD />
+                  <TD /><TD /><TD /><TD />
                   <TD style={{ fontWeight: 800, color: '#4f8ef7', fontSize: 13 }}>{annualRental > 0 ? fmt(annualRental) : '—'}</TD>
                   <TD />
                 </tr>
@@ -621,11 +635,4 @@ export default function Revenue({ project }) {
       </GlassCard>
     </div>
   );
-}
-
-function toMillionsLocal(raw) {
-  if (!raw || raw <= 0) return null;
-  if (raw >= 1_000_000) return parseFloat((raw / 1_000_000).toFixed(2));
-  if (raw >= 1 && raw < 500) return raw;
-  return null;
 }

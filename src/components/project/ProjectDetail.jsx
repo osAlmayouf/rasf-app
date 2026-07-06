@@ -13,6 +13,7 @@ import ProjectComponents from './tabs/ProjectComponents';
 import FundingStructure  from './tabs/FundingStructure';
 import ProjectFiles      from './tabs/ProjectFiles';
 import ProjectGallery     from './tabs/ProjectGallery';
+import ProjectContracts    from './tabs/ProjectContracts';
 import Distributions     from './tabs/Distributions';
 import Revenue           from './tabs/Revenue';
 import CashFlows         from './tabs/CashFlows';
@@ -29,6 +30,7 @@ const TABS = [
   { id: 'dist',    labelKey: 'tbDist',    Component: Distributions      },
   { id: 'cashflow', labelKey: 'tbCash',   Component: CashFlows          },
   { id: 'gallery', labelKey: 'tbGallery', Component: ProjectGallery     },
+  { id: 'contracts', labelKey: 'tbContracts', Component: ProjectContracts, activeOnly: true },
   { id: 'files',   labelKey: 'tbFiles2',  Component: ProjectFiles       },
 ];
 
@@ -130,7 +132,9 @@ export default function ProjectDetail() {
     setConfirmAction(null);
   };
 
-  const ActiveComponent = TABS.find(tb => tb.id === activeTab)?.Component;
+  // تبويبات مرئية: بعضها (ملخص العقود) يخص المشاريع القائمة فقط
+  const visibleTabs = TABS.filter(tb => !tb.activeOnly || (project && project.status !== 'pipeline'));
+  const ActiveComponent = (visibleTabs.find(tb => tb.id === activeTab) ?? visibleTabs.find(tb => tb.id === 'board'))?.Component;
 
   const handleDelete = (id) => {
     portfolioService.removeProject(id);
@@ -530,7 +534,7 @@ export default function ProjectDetail() {
 
       {/* Tabs */}
       <div className="flex overflow-x-auto mb-6" style={{ borderBottom: '1px solid var(--border)' }}>
-        {TABS.map(tab => (
+        {visibleTabs.map(tab => (
           <button
             key={tab.id}
             className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
