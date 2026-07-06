@@ -15,6 +15,7 @@ import LoginPage        from './components/auth/LoginPage';
 import ComingSoonPage   from './components/common/ComingSoonPage';
 import CommercialPage   from './components/commercial/CommercialPage';
 import MapPage          from './components/map/MapPage';
+import ContractsPage    from './components/contracts/ContractsPage';
 
 function PageRouter() {
   const { currentPage } = useApp();
@@ -23,6 +24,7 @@ function PageRouter() {
     case 'project':    return <ProjectDetail />;
     case 'files':      return <FileRepository />;
     case 'map':        return <MapPage />;
+    case 'contracts':  return <ContractsPage />;
     case 'pipeline':           return <PipelinePage />;
     case 'pipeline-dashboard': return <PipelineDashboard />;
     case 'admin':      return <AdminPanel />;

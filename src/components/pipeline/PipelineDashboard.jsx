@@ -9,7 +9,6 @@ import { fmtPct } from '../../utils/fmt';
 import { fmtSARMode, addUnit } from '../../utils/fmtMode';
 import KPICard    from '../dashboard/KPICard';
 import GlassCard  from '../common/GlassCard';
-import SARSymbol  from '../common/SARSymbol';
 
 function fmtDate(iso, lang) {
   const d = new Date(iso);
@@ -250,34 +249,44 @@ export default function PipelineDashboard() {
   const avgPayback  = paybackVals.length ? paybackVals.reduce((s, v) => s + v, 0) / paybackVals.length : 0;
   const totalUnits  = projects.reduce((s, p) => s + (Number(p.units) || 0), 0);
 
-  const sarUnit = (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-      {displayMode === 'thousands' ? (lang === 'ar' ? 'ألف' : 'K') : (lang === 'ar' ? 'ريال' : 'SAR')}
-      <SARSymbol size="0.85em" style={{ opacity: 0.75 }} />
-    </span>
-  );
+
+  // ── مؤشرات خاصة بجانب الدراسة ────────────────────────────────────────────
+  const STUDY_KEYS = ['sp1', 'sp2', 'sp3', 'sp4'];
+  const STUDY_VAL  = { done: 1, active: 0.5, pending: 0 };
+  const studyProgressOf = (p) => {
+    const ph = p.phases ?? [];
+    if (!ph.length || !STUDY_KEYS.includes(ph[0]?.key)) return 0;
+    const sum = ph.reduce((s, x) => {
+      const st = x.status ?? (x.progress >= 100 ? 'done' : x.progress > 0 ? 'active' : 'pending');
+      return s + (STUDY_VAL[st] ?? 0);
+    }, 0);
+    return (sum / ph.length) * 100;
+  };
+  const avgStudy     = count ? projects.reduce((s, p) => s + studyProgressOf(p), 0) / count : 0;
+  const nearDecision = projects.filter(p => studyProgressOf(p) >= 75).length;
+  const currentYr    = new Date().getFullYear();
+  const newThisYear  = projects.filter(p => p.opportunityDate && new Date(p.opportunityDate).getFullYear() === currentYr).length;
 
   const kpiCards = [
     {
       label: t('plCount'),
       value: count,
-      unit: lang === 'ar' ? 'مشروع' : 'projects',
+      unit: lang === 'ar' ? 'فرصة' : 'opportunities',
     },
     {
-      label: addUnit(t('plTotalInv'), displayMode, lang),
-      value: fmt(totalInv),
-      unit: sarUnit,
-    },
-    {
-      label: lang === 'ar' ? 'متوسط IRR المتوقع' : 'Average Expected IRR',
-      value: fmtPct(avgIRR),
-      unit: 'IRR',
+      label: lang === 'ar' ? 'الفرص القريبة من القرار' : 'Near decision',
+      value: nearDecision,
+      unit: lang === 'ar' ? 'فرصة' : 'opps',
       valueClass: 'gold',
     },
     {
-      label: lang === 'ar' ? 'متوسط ROI المتوقع' : 'Average Expected ROI',
-      value: fmtPct(avgROI),
-      unit: 'ROI',
+      label: lang === 'ar' ? 'متوسط تقدّم الدراسة' : 'Avg study progress',
+      value: `${avgStudy.toFixed(0)}%`,
+    },
+    {
+      label: lang === 'ar' ? 'الفرص الجديدة هذا العام' : 'New this year',
+      value: newThisYear,
+      unit: lang === 'ar' ? 'فرصة' : 'opps',
     },
   ];
 

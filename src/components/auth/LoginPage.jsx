@@ -14,7 +14,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(email, password);
-    } catch (err) {
+    } catch {
       setError('البريد الإلكتروني أو كلمة المرور غير صحيحة');
     } finally {
       setLoading(false);

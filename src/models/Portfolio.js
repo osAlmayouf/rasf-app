@@ -22,12 +22,14 @@ export class Portfolio extends Entity {
 
   // All projects (including pipeline + archived). Used internally.
   get projects()          { return [...this._projects]; }
-  // Active portfolio: excludes pipeline and archived.
-  get portfolioProjects() { return this._projects.filter(p => p.status !== 'pipeline' && p.status !== 'archived'); }
+  // Active portfolio: excludes pipeline, archived, and external contract-only entries.
+  get portfolioProjects() { return this._projects.filter(p => p.status !== 'pipeline' && p.status !== 'archived' && p.status !== 'external'); }
   // Pipeline (under-study) projects only — excludes archived.
   get pipelineProjects()  { return this._projects.filter(p => p.status === 'pipeline'); }
   // Archived projects only.
   get archivedProjects()  { return this._projects.filter(p => p.status === 'archived'); }
+  // External contract-only entries (past/outside-management projects — tracked for contracts only).
+  get externalProjects()  { return this._projects.filter(p => p.status === 'external'); }
 
   get totalValue() {
     const total = this.portfolioProjects.reduce((s, p) => s + (p.investmentM || 0), 0);
@@ -77,6 +79,16 @@ export class Portfolio extends Entity {
     const project = new Project(projectData);
     const calc = progressFromPhases(project.phases);
     if (calc !== null) project.progress = calc;
+    this._projects.push(project);
+    return project;
+  }
+
+  // عقد لمشروع خارجي (خارج القائمة/الدراسة) — يُتابع للعقود فقط
+  addExternalContract({ name, contractSummary }) {
+    const project = new Project({
+      id: `ext_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      name, status: 'external', contractSummary, lastUpdated: today(),
+    });
     this._projects.push(project);
     return project;
   }

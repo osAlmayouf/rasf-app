@@ -11,6 +11,8 @@ export class PortfolioService {
   getAllProjects()         { return this.#portfolio.portfolioProjects; }
   getPipelineProjects()   { return this.#portfolio.pipelineProjects; }
   getArchivedProjects()   { return this.#portfolio.archivedProjects; }
+  getExternalContracts()  { return this.#portfolio.externalProjects; }
+  addExternalContract(d)  { return this.#portfolio.addExternalContract(d); }
   getProject(id)          { return this.#portfolio.getProjectById(id); }
 
   archiveProject(id)  { this.#portfolio.archiveProject(id); }

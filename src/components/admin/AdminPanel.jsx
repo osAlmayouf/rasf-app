@@ -20,7 +20,6 @@ export default function AdminPanel() {
   const [users,        setUsers]        = useState([]);
   const [loading,      setLoading]      = useState(true);
   const [showCreate,   setShowCreate]   = useState(false);
-  const [editing,      setEditing]      = useState(null);
   const [restoring,    setRestoring]    = useState(false);
   const [restoreDone,  setRestoreDone]  = useState(false);
 

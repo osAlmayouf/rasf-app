@@ -1,6 +1,6 @@
 import { useApp }  from '../../contexts/useApp';
 import { useAuth } from '../../contexts/useAuth';
-import { LogOut, LayoutDashboard, FolderKanban, Search, FolderOpen, MapPin } from 'lucide-react';
+import { LogOut, LayoutDashboard, FolderKanban, Search, FolderOpen, MapPin, ScrollText } from 'lucide-react';
 
 const NAV_ICONS = {
   dashboard:          <LayoutDashboard size={14} />,
@@ -8,6 +8,7 @@ const NAV_ICONS = {
   project:            <FolderKanban size={14} />,
   pipeline:           <Search size={14} />,
   map:                <MapPin size={14} />,
+  contracts:          <ScrollText size={14} />,
   files:              <FolderOpen size={14} />,
 };
 
@@ -21,6 +22,7 @@ const SECTORS = [
       { key: 'dashboard', labelKey: 'nDash',     page: 'dashboard' },
       { key: 'project',   labelKey: 'nProj',     page: 'project'   },
       { key: 'map',       labelKey: 'nMap',      page: 'map'       },
+      { key: 'contracts', labelKey: 'nContracts', page: 'contracts' },
       { key: 'files',     labelKey: 'nFiles',    page: 'files'     },
     ],
   },

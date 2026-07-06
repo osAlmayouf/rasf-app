@@ -116,12 +116,14 @@ export default function FinancialAnalysis({ project }) {
         <GlassCard>
           <div className="section-hd mb-4">{stripUnit(t('finSumT'), displayMode)}</div>
           <table className="w-full text-sm">
-            {summaryRows.map(r => (
-              <tr key={r.key} style={{ borderBottom: '1px solid var(--glass-line)' }}>
-                <td className="py-3" style={{ color: 'var(--text-muted)' }}>{addUnit(t(r.key), displayMode, lang)}</td>
-                <td className="py-3" style={{ textAlign: 'left', color: r.color ?? 'var(--text-lo)', fontWeight: r.bold ? 700 : 400 }}>{r.value}</td>
-              </tr>
-            ))}
+            <tbody>
+              {summaryRows.map(r => (
+                <tr key={r.key} style={{ borderBottom: '1px solid var(--glass-line)' }}>
+                  <td className="py-3" style={{ color: 'var(--text-muted)' }}>{addUnit(t(r.key), displayMode, lang)}</td>
+                  <td className="py-3" style={{ textAlign: 'left', color: r.color ?? 'var(--text-lo)', fontWeight: r.bold ? 700 : 400 }}>{r.value}</td>
+                </tr>
+              ))}
+            </tbody>
           </table>
         </GlassCard>
       </div>

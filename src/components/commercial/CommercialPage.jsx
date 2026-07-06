@@ -99,7 +99,7 @@ function ProjectTabs({ active, onChange }) {
 }
 
 // ─── TAB 1: المبيعات ──────────────────────────────────────────────────────────
-function SalesTab({ projectId, onProjectChange }) {
+function SalesTab({ projectId }) {
   const [statusFilter, setStatusFilter] = useState('all');
   const [agentFilter,  setAgentFilter]  = useState('all');
   const [zoneFilter,   setZoneFilter]   = useState('all');

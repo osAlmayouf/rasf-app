@@ -23,7 +23,7 @@ function ls(key) {
   try { return JSON.parse(localStorage.getItem(key)); } catch { return null; }
 }
 function lsSet(key, val) {
-  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch { /* ignore */ }
 }
 
 const TH = ({ children }) => (

@@ -337,7 +337,7 @@ function OverviewPage({ portfolioService, lang, totalPages }) {
               </tr>
             </thead>
             <tbody>
-              {projects.map((p, i) => (
+              {projects.map((p) => (
                 <tr key={p.id} style={{ borderTop: `1px solid ${C.line}` }}>
                   <td style={{ padding: '9px 12px' }}>
                     <div style={{ fontWeight: 700, color: C.hi, fontSize: 12, fontFamily: 'Cairo, sans-serif' }}>{p.name}</div>

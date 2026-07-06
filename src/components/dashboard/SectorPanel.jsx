@@ -31,18 +31,6 @@ const SENS_EXPLAIN = {
   },
 };
 
-const PERF_EXPLAIN = {
-  ar: {
-    what: 'ما الذي يقيسه هذا الرسم البياني؟',
-    body: 'يعرض إجمالي القيمة السوقية للمحفظة شهرياً (بالمليون)، وهي ناتج جمع قيمة كل مشروع محسوبةً من الاستثمار الأساسي مضافاً إليه العوائد المتراكمة وفق نسبة الإنجاز والمبيعات المنجزة والإيجارات.',
-    compare: 'المقارنة بين 2024 و2023 تُظهر معدل النمو الفعلي للمحفظة عاماً بعام.',
-  },
-  en: {
-    what: 'What does this chart measure?',
-    body: 'It shows the total market value of the portfolio each month in SAR million — computed as the sum of each project\'s base investment plus accumulated returns based on completion rate, completed sales, and rental income.',
-    compare: 'The 2024 vs 2023 comparison shows the portfolio\'s actual year-on-year growth rate.',
-  },
-};
 
 export default function SectorPanel() {
   const { t, lang, portfolioService } = useApp();
