@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
 import { useApp } from '../../contexts/useApp';
+import { useAuth } from '../../contexts/useAuth';
 import { fmtPct, fmtMonthYear } from '../../utils/fmt';
 import { stripUnit } from '../../utils/fmtMode';
 import { parseLatLng, isShortMapLink } from '../../utils/geo';
@@ -28,7 +29,7 @@ const TABS = [
   { id: 'comp',    labelKey: 'tbComp',    Component: ProjectComponents  },
   { id: 'revenue', labelKey: 'tbRevenue', Component: Revenue            },
   { id: 'dist',    labelKey: 'tbDist',    Component: Distributions      },
-  { id: 'cashflow', labelKey: 'tbCash',   Component: CashFlows          },
+  { id: 'cashflow', labelKey: 'tbCash',   Component: CashFlows, adminOnly: true },
   { id: 'gallery', labelKey: 'tbGallery', Component: ProjectGallery     },
   { id: 'contracts', labelKey: 'tbContracts', Component: ProjectContracts, activeOnly: true },
   { id: 'files',   labelKey: 'tbFiles2',  Component: ProjectFiles       },
@@ -46,6 +47,7 @@ const TYPE_LABEL_MAP   = { residential: 'typeRes', commercial: 'typeCom', indust
 
 export default function ProjectDetail() {
   const { t, portfolioService, selectedProjectId, setSelectedProjectId, setPage, refreshPortfolio, pendingTab, setPendingTab, displayMode, outerProjectTab, setOuterProjectTab } = useApp();
+  const { isAdmin } = useAuth();
   const [activeTab, setActiveTab]             = useState('board');
   const outerTab    = outerProjectTab;
   const setOuterTab = setOuterProjectTab;
@@ -132,8 +134,11 @@ export default function ProjectDetail() {
     setConfirmAction(null);
   };
 
-  // تبويبات مرئية: بعضها (ملخص العقود) يخص المشاريع القائمة فقط
-  const visibleTabs = TABS.filter(tb => !tb.activeOnly || (project && project.status !== 'pipeline'));
+  // تبويبات مرئية: ملخص العقود للمشاريع القائمة فقط · التدفقات النقدية للأدمن فقط
+  const visibleTabs = TABS.filter(tb =>
+    (!tb.activeOnly || (project && project.status !== 'pipeline')) &&
+    (!tb.adminOnly || isAdmin)
+  );
   const ActiveComponent = (visibleTabs.find(tb => tb.id === activeTab) ?? visibleTabs.find(tb => tb.id === 'board'))?.Component;
 
   const handleDelete = (id) => {
