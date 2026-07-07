@@ -1,5 +1,6 @@
 import { useApp }  from '../../contexts/useApp';
 import { useAuth } from '../../contexts/useAuth';
+import { APP_VERSION } from '../../appVersion';
 import { LogOut, LayoutDashboard, FolderKanban, Search, FolderOpen, MapPin, ScrollText } from 'lucide-react';
 
 const NAV_ICONS = {
@@ -54,6 +55,7 @@ export default function Sidebar() {
           <div>
             <div style={{ fontWeight: 900, color: 'var(--text-hi)', fontSize: 17, letterSpacing: '-0.2px', lineHeight: 1.1 }}>رصف للاستثمار</div>
             <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 500, marginTop: 3 }}>{t('sbSub')}</div>
+            <div style={{ fontSize: 9, color: 'var(--text-faint)', fontWeight: 500, marginTop: 2, letterSpacing: '0.3px' }}>الإصدار {APP_VERSION}</div>
           </div>
         </div>
       </div>
