@@ -47,7 +47,7 @@ export default function Sidebar() {
       <div className="px-4 mb-6">
         <div className="flex items-center gap-3">
           <img
-            src="/rasf-logo.png"
+            src={`${import.meta.env.BASE_URL}rasf-logo.png`}
             alt="RASF"
             style={{ width: 48, height: 48, borderRadius: 8, flexShrink: 0 }}
           />

@@ -44,7 +44,7 @@ function LoadingScreen({ message = 'جاري التحميل...' }) {
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center', gap: 16, zIndex: 9999,
     }}>
-      <img src="/rasf-logo.png" alt="RASF"
+      <img src={`${import.meta.env.BASE_URL}rasf-logo.png`} alt="RASF"
         style={{ width: 56, height: 56, borderRadius: 12, opacity: 0.9 }} />
       <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 500 }}>{message}</div>
       <div style={{ width: 180, height: 3, borderRadius: 4, background: 'var(--border-faint)', overflow: 'hidden' }}>

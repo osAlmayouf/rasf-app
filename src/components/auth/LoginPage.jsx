@@ -35,7 +35,7 @@ export default function LoginPage() {
       }}>
         {/* Logo */}
         <div className="flex items-center gap-3 mb-8">
-          <img src="/rasf-logo.png" alt="RASF"
+          <img src={`${import.meta.env.BASE_URL}rasf-logo.png`} alt="RASF"
             style={{ width: 48, height: 48, borderRadius: 10, flexShrink: 0 }} />
           <div>
             <div style={{ fontWeight: 900, fontSize: 18, color: 'var(--text-hi)', lineHeight: 1.1 }}>
