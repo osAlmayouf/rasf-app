@@ -151,11 +151,11 @@ export default function Dashboard() {
             <SectorPanel />
           </div>
 
-          {/* Notes + Table Row */}
-          <div className="grid gap-5 mb-6" style={{ gridTemplateColumns: '1fr 3fr', alignItems: 'start' }}>
+          {/* Notes (full width) above the projects table */}
+          <div className="mb-6">
             <RecentNotes />
-            <ProjectsTable />
           </div>
+          <ProjectsTable />
         </>
       ) : (
         <div className="flex flex-col gap-6">

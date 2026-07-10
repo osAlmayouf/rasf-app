@@ -197,9 +197,9 @@ export default function PipelinePage() {
         </GlassCard>
       )}
 
-      {/* Two-column layout: table (left) + notes (right) */}
+      {/* Single column: notes on top, then table + archived */}
       {activeProjects.length > 0 && (
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 20, alignItems: 'start' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
       {/* Left column: table + archived */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -435,8 +435,8 @@ export default function PipelinePage() {
 
       </div>{/* end left column */}
 
-      {/* Right column: Notes panel */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {/* Notes panel — full width, above the table */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, order: -1 }}>
         <div style={{
           background: 'var(--bg-card)', border: '1px solid var(--border)',
           borderRadius: 14, overflow: 'hidden',
