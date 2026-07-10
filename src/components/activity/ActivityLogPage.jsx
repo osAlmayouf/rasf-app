@@ -57,7 +57,7 @@ export default function ActivityLogPage() {
       <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
         <div>
           <div className="section-hd">سجل العمليات</div>
-          <div className="section-sub">من فعل ماذا ومتى — {rows.length} عملية</div>
+          <div className="section-sub">{rows.length} عملية</div>
         </div>
         <div className="flex items-center gap-2">
           <input
