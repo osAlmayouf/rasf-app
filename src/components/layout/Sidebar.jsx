@@ -47,9 +47,9 @@ export default function Sidebar({ drawerOpen = false, onNavigate }) {
     : SECTORS.filter(s => (profile?.sectors ?? []).includes(s.key));
 
   return (
-    <div className={`sidebar flex flex-col py-5${drawerOpen ? ' open' : ''}`} style={{ borderInlineEnd: '1px solid var(--border-sidebar)' }}>
-      {/* Brand */}
-      <div className="px-4 mb-6">
+    <div className={`sidebar flex flex-col pb-5${drawerOpen ? ' open' : ''}`} style={{ borderInlineEnd: '1px solid var(--border-sidebar)' }}>
+      {/* Brand — نفس ارتفاع شريط العنوان (topbar) ومتمركز عموديًا ليتحاذيا */}
+      <div className="px-4" style={{ minHeight: 68, display: 'flex', alignItems: 'center', marginBottom: 12 }}>
         <div className="flex items-center gap-3">
           <img
             src={`${import.meta.env.BASE_URL}rasf-logo.png`}
@@ -58,10 +58,7 @@ export default function Sidebar({ drawerOpen = false, onNavigate }) {
           />
           <div>
             <div style={{ fontWeight: 900, color: 'var(--text-hi)', fontSize: 17, letterSpacing: '-0.2px', lineHeight: 1.1 }}>رصف للاستثمار</div>
-            <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 500, marginTop: 3 }}>
-              {t('sbSub')}
-              <span style={{ color: 'var(--text-faint)', marginInlineStart: 5 }}>· v{APP_VERSION}</span>
-            </div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 500, marginTop: 3 }}>{t('sbSub')}</div>
           </div>
         </div>
       </div>
@@ -159,6 +156,9 @@ export default function Sidebar({ drawerOpen = false, onNavigate }) {
               <LogOut size={15} />
             </button>
           </div>
+        </div>
+        <div style={{ textAlign: 'center', fontSize: 9, color: 'var(--text-faint)', fontWeight: 500, letterSpacing: '0.3px', marginTop: 8 }}>
+          الإصدار v{APP_VERSION}
         </div>
       </div>
     </div>
