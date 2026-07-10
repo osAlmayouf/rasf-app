@@ -2,7 +2,7 @@ const TRANSLATIONS = {
   ar: {
     brand: 'رصف', sbSub: 'نظام تطوير الأعمال',
     sbUser: 'عمر المعيوف', sbRole: 'مدير المحفظة',
-    nDash: 'لوحة المحفظة', nDashPortfolio: 'القائمة', nPipelineDash: 'تحت الدراسة', nProj: 'المشاريع', nMap: 'الخريطة', nContracts: 'العقود', nFiles: 'الملفات',
+    nDash: 'لوحة المحفظة', nDashPortfolio: 'القائمة', nPipelineDash: 'تحت الدراسة', nProj: 'المشاريع', nMap: 'الخريطة', nContracts: 'العقود', nActivity: 'سجل العمليات', nFiles: 'الملفات',
     nPipeline: 'مشاريع تحت الدراسة',
     ptPipeline: 'مشاريع تحت الدراسة',
     pipelineEmpty: 'لا توجد مشاريع تحت الدراسة حالياً',
@@ -125,7 +125,7 @@ const TRANSLATIONS = {
   en: {
     brand: 'RASF', sbSub: 'Business Development System',
     sbUser: 'Omar Al-Mayouf', sbRole: 'Portfolio Manager',
-    nDash: 'Portfolio Dashboard', nDashPortfolio: 'Active', nPipelineDash: 'Under Study', nProj: 'Projects', nMap: 'Map', nContracts: 'Contracts', nFiles: 'Files',
+    nDash: 'Portfolio Dashboard', nDashPortfolio: 'Active', nPipelineDash: 'Under Study', nProj: 'Projects', nMap: 'Map', nContracts: 'Contracts', nActivity: 'Activity Log', nFiles: 'Files',
     nPipeline: 'Projects Under Study',
     ptPipeline: 'Projects Under Study',
     pipelineEmpty: 'No projects under study at the moment',

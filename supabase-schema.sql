@@ -185,6 +185,35 @@ CREATE POLICY "dep users insert audit"
 --   ON storage.objects FOR DELETE
 --   USING (bucket_id = 'project-files' AND is_dep_admin());
 
+-- ── Activity log (سجل العمليات) ───────────────────────────────────────
+-- يسجّل عمليات الموظفين: إضافة/تعديل مشروع، تغيير حالة، عقود، ملفات، صور...
+
+CREATE TABLE IF NOT EXISTS activity_log (
+  id            BIGSERIAL    PRIMARY KEY,
+  action        TEXT         NOT NULL,   -- وصف العملية بالعربي
+  entity_type   TEXT,                    -- 'project' | 'status' | 'contract' | 'file' | 'image' | 'note'
+  entity_name   TEXT,                    -- اسم المشروع/العنصر
+  project_id    TEXT,                    -- بدون FK (قد يُسجَّل قبل مزامنة المشروع)
+  details       TEXT,
+  performed_by  TEXT         NOT NULL,   -- اسم الموظف
+  user_id       UUID         REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at    TIMESTAMPTZ  DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS activity_log_created_idx ON activity_log (created_at DESC);
+
+ALTER TABLE activity_log ENABLE ROW LEVEL SECURITY;
+
+-- أي مستخدم نشط يسجّل عملياته
+CREATE POLICY "active users insert activity"
+  ON activity_log FOR INSERT
+  WITH CHECK (EXISTS (SELECT 1 FROM user_profiles WHERE id = auth.uid() AND is_active = true));
+
+-- المدراء فقط يقرؤون السجل
+CREATE POLICY "managers read activity"
+  ON activity_log FOR SELECT
+  USING (is_dep_admin());
+
 -- ── First admin ───────────────────────────────────────────────────────
 -- Run AFTER creating the admin user in Auth dashboard.
 --

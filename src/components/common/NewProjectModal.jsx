@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '../../contexts/useApp';
+import { useAuth } from '../../contexts/useAuth';
+import { ActivityService } from '../../services/ActivityService';
 import { ProjectStatus, ProjectType } from '../../models/Project';
 import { X } from 'lucide-react';
 
@@ -12,6 +14,7 @@ const PROJECT_TYPE_OPTIONS = [
 
 export default function NewProjectModal({ onClose, defaultStatus }) {
   const { portfolioService, refreshPortfolio, setPage, setSelectedProjectId, setPendingTab } = useApp();
+  const { profile } = useAuth();
   const [name,        setName]        = useState('');
   const [projectType, setProjectType] = useState(ProjectType.COMMERCIAL);
   const [nameError,   setNameError]   = useState('');
@@ -73,6 +76,7 @@ export default function NewProjectModal({ onClose, defaultStatus }) {
       financing: null,
     });
 
+    ActivityService.log(profile, 'إضافة مشروع', { entityType: 'project', entityName: name.trim(), projectId: id });
     refreshPortfolio();
     setSelectedProjectId(id);
     setPendingTab('files');

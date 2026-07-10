@@ -1,7 +1,7 @@
 import { useApp }  from '../../contexts/useApp';
 import { useAuth } from '../../contexts/useAuth';
 import { APP_VERSION } from '../../appVersion';
-import { LogOut, LayoutDashboard, FolderKanban, Search, FolderOpen, MapPin, ScrollText } from 'lucide-react';
+import { LogOut, LayoutDashboard, FolderKanban, Search, FolderOpen, MapPin, ScrollText, History } from 'lucide-react';
 
 const NAV_ICONS = {
   dashboard:          <LayoutDashboard size={14} />,
@@ -10,6 +10,7 @@ const NAV_ICONS = {
   pipeline:           <Search size={14} />,
   map:                <MapPin size={14} />,
   contracts:          <ScrollText size={14} />,
+  activity:           <History size={14} />,
   files:              <FolderOpen size={14} />,
 };
 
@@ -24,14 +25,18 @@ const SECTORS = [
       { key: 'project',   labelKey: 'nProj',     page: 'project'   },
       { key: 'map',       labelKey: 'nMap',      page: 'map'       },
       { key: 'contracts', labelKey: 'nContracts', page: 'contracts' },
+      { key: 'activity',  labelKey: 'nActivity', page: 'activity', managerOnly: true },
       { key: 'files',     labelKey: 'nFiles',    page: 'files'     },
     ],
   },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ drawerOpen = false, onNavigate }) {
   const { t, currentPage, setPage, portfolioService, selectedProjectId, setSelectedProjectId } = useApp();
-  const { profile, isAdmin, logout } = useAuth();
+  const { profile, isAdmin, isDepAdmin, logout } = useAuth();
+
+  // Wrap page navigation so the drawer closes after a selection (compact mode)
+  const go = (page) => { setPage(page); onNavigate?.(); };
 
   // Determine which nav key should be highlighted
   const activeNavKey = (currentPage === 'pipeline' || currentPage === 'pipeline-dashboard')
@@ -43,7 +48,7 @@ export default function Sidebar() {
     : SECTORS.filter(s => (profile?.sectors ?? []).includes(s.key));
 
   return (
-    <div className="sidebar flex flex-col py-5" style={{ borderInlineEnd: '1px solid var(--border-sidebar)' }}>
+    <div className={`sidebar flex flex-col py-5${drawerOpen ? ' open' : ''}`} style={{ borderInlineEnd: '1px solid var(--border-sidebar)' }}>
       {/* Brand */}
       <div className="px-4 mb-6">
         <div className="flex items-center gap-3">
@@ -66,7 +71,7 @@ export default function Sidebar() {
       {/* Sectors nav */}
       <nav className="flex-1 px-3 overflow-y-auto" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {allowedSectors.map(sector =>
-          sector.items.map(item => (
+          sector.items.filter(item => !item.managerOnly || isDepAdmin).map(item => (
             <div
               key={item.key}
               className={`nav-item ${activeNavKey === item.key ? 'active' : ''}`}
@@ -80,7 +85,7 @@ export default function Sidebar() {
                     if (firstActive) setSelectedProjectId(firstActive.id);
                   }
                 }
-                setPage(item.page);
+                go(item.page);
               }}
               style={{ cursor: 'pointer' }}
             >
@@ -98,7 +103,7 @@ export default function Sidebar() {
         <div className="px-3 mb-1">
           <div
             className={`nav-item ${activeNavKey === 'admin' ? 'active' : ''}`}
-            onClick={() => setPage('admin')}
+            onClick={() => go('admin')}
             style={{ cursor: 'pointer' }}
           >
             <div className="nav-dot" />

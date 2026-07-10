@@ -1,18 +1,25 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import ProgressBar from '../common/ProgressBar';
 
-const BASE_FONT = 32;   // حجم خط القيمة الافتراضي
-const MIN_FONT  = 17;   // أصغر حجم قبل التوقف عن التصغير
+// حجم خط القيمة حسب طول النص (الأرقام الطويلة تأخذ خطًا أصغر ليدخل داخل البطاقة)
+function fontForLength(len) {
+  if (len <= 8)  return 32;
+  if (len <= 10) return 28;
+  if (len <= 12) return 24;
+  if (len <= 14) return 20;
+  return 18;
+}
 
 /**
  * KPI metric card.
  *
  * @param {{ label, value, unit, trend, trendColor, progress, progressHint, tooltip, valueClass }} props
  *
- * tooltip  — when provided (executive mode), shown as a `title` on the value
- *            and a subtle cursor:help hint, so hovering reveals the exact number.
+ * tooltip  — when provided (executive mode), shown as a `title` on the value.
  * valueClass — optional CSS class on the value element (e.g. "gold").
  * The value span re-mounts (triggering .sar-num-anim) whenever `value` changes.
+ * Font size adapts to the value length, then shrinks further if it still overflows
+ * the card — so full-number amounts stay inside the box.
  */
 export default function KPICard({
   label,
@@ -29,6 +36,9 @@ export default function KPICard({
   const wrapRef = useRef(null);
   const spanRef = useRef(null);
 
+  const text      = value == null ? '' : String(value);
+  const startFont = fontForLength(text.length);
+
   useEffect(() => {
     if (prevValue.current !== value) {
       setAnimKey(k => k + 1);
@@ -36,17 +46,17 @@ export default function KPICard({
     }
   }, [value]);
 
-  // يصغّر حجم خط القيمة تلقائيًا لو الرقم أعرض من البطاقة (وضع العرض الكامل)
+  // تصغير إضافي بالقياس لو ما زال الرقم أعرض من البطاقة
   useLayoutEffect(() => {
     const wrap = wrapRef.current, span = spanRef.current;
     if (!wrap || !span) return;
-    span.style.fontSize = `${BASE_FONT}px`;
+    span.style.fontSize = `${startFont}px`;
     const avail = wrap.clientWidth;
     const natural = span.scrollWidth;
     if (avail > 0 && natural > avail) {
-      span.style.fontSize = `${Math.max(MIN_FONT, Math.floor(BASE_FONT * (avail / natural)))}px`;
+      span.style.fontSize = `${Math.max(13, Math.floor(startFont * (avail / natural)))}px`;
     }
-  }, [value, animKey]);
+  }, [value, animKey, startFont]);
 
   return (
     <div className="kpi">
@@ -58,7 +68,7 @@ export default function KPICard({
         ref={wrapRef}
         title={tooltip}
         style={{
-          fontSize: BASE_FONT, fontWeight: 800, color: 'var(--text-hi)',
+          fontSize: startFont, fontWeight: 800, color: 'var(--text-hi)',
           lineHeight: 1.1, letterSpacing: '-0.5px',
           cursor: tooltip ? 'help' : undefined,
           overflow: 'hidden',

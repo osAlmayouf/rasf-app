@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '../../../contexts/useApp';
+import { useAuth } from '../../../contexts/useAuth';
+import { ActivityService } from '../../../services/ActivityService';
 import { Pencil } from 'lucide-react';
 import { resolveSummary, summaryHasContent } from '../../contracts/contractData';
 import { ContractEditForm, ContractSummaryView } from '../../contracts/contractSummary';
 
 export default function ProjectContracts({ project }) {
   const { portfolioService, refreshPortfolio } = useApp();
+  const { profile } = useAuth();
   const [summary, setSummary] = useState(() => resolveSummary(project));
   const [editing, setEditing] = useState(false);
 
@@ -17,6 +20,7 @@ export default function ProjectContracts({ project }) {
   const handleSave = (draft) => {
     setSummary(draft);
     portfolioService.updateProject(project.id, { contractSummary: draft });
+    ActivityService.log(profile, 'تحديث ملخص العقد', { entityType: 'contract', entityName: project.name, projectId: project.id });
     refreshPortfolio();
     setEditing(false);
   };

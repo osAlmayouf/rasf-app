@@ -3,6 +3,7 @@ import { useApp }       from '../../../contexts/useApp';
 import { useAuth }      from '../../../contexts/useAuth';
 import { FileCategory } from '../../../models/FileDocument';
 import { applyStudyFileToProject, isStudyFile } from '../../../utils/applyStudyExtraction';
+import { ActivityService } from '../../../services/ActivityService';
 import FileViewer       from '../../common/FileViewer';
 import Tag              from '../../common/Tag';
 import { TrendingUp, FileText, FileCheck, Landmark, Sparkles, Eye, Download, Loader, Trash2 } from 'lucide-react';
@@ -66,6 +67,7 @@ export default function ProjectFiles({ project }) {
     // 2) Upload the file to storage — independent; a failure here won't block extraction.
     try {
       await fileService.upload(file, project.id, project.name, category, profile);
+      ActivityService.log(profile, 'إضافة ملف', { entityType: 'file', entityName: project.name, projectId: project.id, details: file.name });
       await fetchFiles();
     } catch (err) {
       console.error('[Upload] failed', err);
@@ -88,6 +90,7 @@ export default function ProjectFiles({ project }) {
   const handleDelete = async (file) => {
     try {
       await fileService.delete(file.id, file.storagePath, profile);
+      ActivityService.log(profile, 'حذف ملف', { entityType: 'file', entityName: project.name, projectId: project.id, details: file.name });
       setFiles(prev => prev.filter(f => f.id !== file.id));
     } catch (err) {
       console.error('[Delete] failed', err);

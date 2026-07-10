@@ -376,6 +376,103 @@
 input[type=file] { display: none; }
 
 /* ══════════════════════════════════════════════════════════════
+   RESPONSIVE LAYOUT — mobile / tablet / desktop
+   Breakpoints (keep in sync with src/hooks/useMediaQuery.js):
+     compact  ≤ 1024px  → off-canvas drawer nav (phone + portrait tablet)
+     phone    ≤ 640px   → single-column content, denser spacing
+══════════════════════════════════════════════════════════════ */
+
+/* App shell — flex row (sidebar + main); RTL places sidebar on the right */
+.app-shell   { display: flex; }
+.app-content { padding: 24px; }
+
+/* Hamburger — desktop hides it, compact mode shows it */
+.menu-btn {
+  display: none;
+  align-items: center; justify-content: center;
+  background: var(--bg-btn); border: 1px solid var(--border-soft);
+  border-radius: 8px; padding: 6px; cursor: pointer;
+  color: var(--text-med); flex-shrink: 0;
+  transition: border-color .18s, color .18s;
+}
+.menu-btn:hover { border-color: var(--rasf-primary); color: var(--text-hi); }
+
+/* ── Compact: phone + portrait tablet → drawer navigation ───────── */
+@media (max-width: 1024px) {
+  .menu-btn { display: inline-flex; }
+
+  /* Sidebar becomes a fixed off-canvas drawer */
+  .sidebar {
+    position: fixed; inset-block: 0; inset-inline-start: 0;
+    width: 264px; max-width: 82vw; z-index: 300;
+    min-height: 100vh; overflow-y: auto;
+    transition: transform .28s ease;
+  }
+  [dir="rtl"] .sidebar { transform: translateX(100%); }
+  [dir="ltr"] .sidebar { transform: translateX(-100%); }
+  .sidebar.open {
+    transform: translateX(0) !important;
+    box-shadow: 0 0 44px rgba(0,0,0,0.45);
+  }
+
+  .app-backdrop {
+    position: fixed; inset: 0; z-index: 250;
+    background: rgba(0,0,0,0.5);
+    animation: rasf-fade-in .2s ease;
+  }
+
+  .topbar      { padding: 12px 16px !important; }
+  .app-content { padding: 16px; }
+
+  /* Topbar action buttons collapse into a settings dropdown (⚙︎ toggle) */
+  .topbar-actions {
+    position: absolute; top: calc(100% + 12px); inset-inline-end: 0;
+    flex-direction: column; align-items: stretch;
+    gap: 10px !important;
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px; min-width: 212px;
+    box-shadow: 0 14px 34px rgba(0,0,0,0.40);
+    z-index: 60; display: none;
+  }
+  .topbar-actions.open { display: flex; animation: rasf-fade-in .15s ease; }
+
+  /* Dense KPI / stat grids → 3 columns at tablet width */
+  .grid-cols-6, .grid-cols-5, .grid-cols-4 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+  /* Inline stat rows built with repeat(4+) also relax to 3 columns */
+  [style*="repeat(4"], [style*="repeat(5"],
+  [style*="repeat(6"], [style*="repeat(7"], [style*="repeat(8"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+/* ── Phone: single / two-column content, tighter spacing ────────── */
+@media (max-width: 640px) {
+  .topbar      { padding: 10px 12px !important; }
+  .topbar-title { font-size: 15px !important; }
+  .topbar-sub   { display: none; }
+  .app-content { padding: 12px; }
+
+  /* Tailwind grid utilities collapse to two columns */
+  .grid-cols-2, .grid-cols-3, .grid-cols-4,
+  .grid-cols-5, .grid-cols-6 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  /* Fixed inline grids stack to a single column.
+     Fluid repeat(auto-fill/auto-fit,…) grids already reflow — leave them. */
+  [style*="grid-template-columns"]:not([style*="auto-fill"]):not([style*="auto-fit"]) {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Wide tables scroll horizontally rather than overflowing the page */
+  .app-content table { min-width: max-content; }
+}
+
+@keyframes rasf-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* ══════════════════════════════════════════════════════════════
    PRINT / PDF EXPORT
    Always light mode for clarity regardless of screen theme
 ══════════════════════════════════════════════════════════════ */

@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useApp } from '../../contexts/useApp';
+import { useAuth } from '../../contexts/useAuth';
 import ReportSheet from '../report/ReportSheet';
 import DisplayModeToggle from '../common/DisplayModeToggle';
-import { Globe, Loader2, FileDown } from 'lucide-react';
+import { Globe, Loader2, FileDown, Menu, SlidersHorizontal } from 'lucide-react';
 
 const PAGE_TITLE_KEY = { dashboard: 'ptDash', files: 'ptFiles', pipeline: 'ptPipeline', 'pipeline-dashboard': 'ptPipelineDash' };
 
@@ -16,10 +17,23 @@ function formatUpdateDate(lang) {
   return `Last updated: ${now.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`;
 }
 
-export default function TopBar() {
+export default function TopBar({ onMenuToggle }) {
   const { t, lang, toggleLang, theme, toggleTheme, currentPage, portfolioService, selectedProjectId } = useApp();
+  const { isAdmin } = useAuth();
   const [exporting,  setExporting]  = useState(false);
   const [capturing,  setCapturing]  = useState(false);
+  const [actionsOpen, setActionsOpen] = useState(false); // compact-mode settings dropdown
+  const actionsRef = useRef(null);
+
+  // Close the compact settings dropdown when clicking outside it
+  useEffect(() => {
+    if (!actionsOpen) return;
+    const onDown = (e) => {
+      if (actionsRef.current && !actionsRef.current.contains(e.target)) setActionsOpen(false);
+    };
+    document.addEventListener('pointerdown', onDown);
+    return () => document.removeEventListener('pointerdown', onDown);
+  }, [actionsOpen]);
 
   useEffect(() => {
     if (!capturing) return;
@@ -57,15 +71,35 @@ export default function TopBar() {
   return (
     <>
       <div
-        className="flex items-center justify-between sticky top-0 z-50"
+        className="topbar flex items-center justify-between sticky top-0 z-50"
         style={{ padding: '16px 24px', background: 'var(--bg-topbar)', borderBottom: '1px solid var(--border-faint)' }}
       >
-        <div>
-          <div style={{ fontWeight: 800, color: 'var(--text-hi)', fontSize: 17, letterSpacing: '-0.2px' }}>{getTitle()}</div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, fontWeight: 500 }}>{formatUpdateDate(lang)}</div>
+        <div className="flex items-center" style={{ gap: 12, minWidth: 0 }}>
+          {/* Hamburger — visible only in compact (drawer) mode via CSS */}
+          <button
+            className="menu-btn"
+            onClick={onMenuToggle}
+            aria-label={lang === 'ar' ? 'القائمة' : 'Menu'}
+          >
+            <Menu size={20} />
+          </button>
+          <div style={{ minWidth: 0 }}>
+            <div className="topbar-title" style={{ fontWeight: 800, color: 'var(--text-hi)', fontSize: 17, letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{getTitle()}</div>
+            <div className="topbar-sub" style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, fontWeight: 500 }}>{formatUpdateDate(lang)}</div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="topbar-actions-wrap" ref={actionsRef} style={{ position: 'relative' }}>
+          {/* Compact settings toggle — collapses the action buttons into a dropdown */}
+          <button
+            className="menu-btn actions-toggle"
+            onClick={() => setActionsOpen(v => !v)}
+            aria-label={lang === 'ar' ? 'الإعدادات' : 'Settings'}
+          >
+            <SlidersHorizontal size={18} />
+          </button>
+
+          <div className={`topbar-actions flex items-center gap-3${actionsOpen ? ' open' : ''}`}>
           {/* Display mode toggle */}
           <DisplayModeToggle />
 
@@ -109,7 +143,8 @@ export default function TopBar() {
             </span>
           </button>
 
-          {/* Export */}
+          {/* Export — للأدمن فقط (الميزة غير مكتملة) */}
+          {isAdmin && (
           <button
             disabled={exporting}
             style={{
@@ -134,7 +169,9 @@ export default function TopBar() {
               </span>
             )}
           </button>
+          )}
 
+          </div>
         </div>
       </div>
 

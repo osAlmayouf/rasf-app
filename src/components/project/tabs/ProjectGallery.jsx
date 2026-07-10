@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useApp }  from '../../../contexts/useApp';
 import { useAuth } from '../../../contexts/useAuth';
 import { FileCategory } from '../../../models/FileDocument';
+import { ActivityService } from '../../../services/ActivityService';
 import { Loader, ImagePlus, Trash2, ChevronLeft, ChevronRight, X, Download } from 'lucide-react';
 
 // معرض صور المشروع — يعيد استخدام تخزين الملفات (bucket project-files) بفئة "img"
@@ -59,6 +60,7 @@ export default function ProjectGallery({ project }) {
       for (const file of files) {
         await fileService.upload(file, project.id, project.name, FileCategory.IMAGES, profile);
       }
+      ActivityService.log(profile, files.length > 1 ? `إضافة ${files.length} صور` : 'إضافة صورة', { entityType: 'image', entityName: project.name, projectId: project.id });
       await fetchImages();
     } catch (err) {
       console.error('[Gallery] upload failed', err);
@@ -70,6 +72,7 @@ export default function ProjectGallery({ project }) {
   const handleDelete = async (img) => {
     try {
       await fileService.delete(img.id, img.storagePath, profile);
+      ActivityService.log(profile, 'حذف صورة', { entityType: 'image', entityName: project.name, projectId: project.id });
       setImages(prev => prev.filter(i => i.id !== img.id));
     } catch (err) {
       console.error('[Gallery] delete failed', err);

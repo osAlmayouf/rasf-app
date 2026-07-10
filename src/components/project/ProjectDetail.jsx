@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect } from 'react';
 import { useApp } from '../../contexts/useApp';
 import { useAuth } from '../../contexts/useAuth';
+import { ActivityService } from '../../services/ActivityService';
 import { fmtPct, fmtMonthYear } from '../../utils/fmt';
 import { stripUnit } from '../../utils/fmtMode';
 import { parseLatLng, isShortMapLink } from '../../utils/geo';
@@ -47,7 +48,7 @@ const TYPE_LABEL_MAP   = { residential: 'typeRes', commercial: 'typeCom', indust
 
 export default function ProjectDetail() {
   const { t, portfolioService, selectedProjectId, setSelectedProjectId, setPage, refreshPortfolio, pendingTab, setPendingTab, displayMode, outerProjectTab, setOuterProjectTab } = useApp();
-  const { isAdmin } = useAuth();
+  const { isAdmin, profile } = useAuth();
   const [activeTab, setActiveTab]             = useState('board');
   const outerTab    = outerProjectTab;
   const setOuterTab = setOuterProjectTab;
@@ -110,6 +111,7 @@ export default function ProjectDetail() {
       else if (!url) { updates.lat = null; updates.lng = null; }
 
       portfolioService.updateProject(project.id, updates);
+      ActivityService.log(profile, 'تعديل بيانات المشروع', { entityType: 'project', entityName: editName.trim(), projectId: project.id });
       refreshPortfolio();
     }
     setEditing(false);
@@ -118,6 +120,7 @@ export default function ProjectDetail() {
   const cancelEdit = () => setEditing(false);
 
   const handlePipelineAction = (action) => {
+    const ACTION_LABEL = { promote: 'نقل المشروع للمشاريع القائمة', demote: 'نقل المشروع لتحت الدراسة', archive: 'أرشفة المشروع' };
     if (action === 'promote') {
       portfolioService.promoteProject(project.id);
       setOuterTab('active');
@@ -130,6 +133,7 @@ export default function ProjectDetail() {
       if (remaining.length > 0) setSelectedProjectId(remaining[0].id);
       else setPage('pipeline');
     }
+    ActivityService.log(profile, ACTION_LABEL[action] ?? 'تغيير حالة المشروع', { entityType: 'status', entityName: project.name, projectId: project.id });
     refreshPortfolio();
     setConfirmAction(null);
   };
@@ -142,6 +146,8 @@ export default function ProjectDetail() {
   const ActiveComponent = (visibleTabs.find(tb => tb.id === activeTab) ?? visibleTabs.find(tb => tb.id === 'board'))?.Component;
 
   const handleDelete = (id) => {
+    const deleted = portfolioService.getProject(id);
+    ActivityService.log(profile, 'حذف مشروع', { entityType: 'project', entityName: deleted?.name ?? id, projectId: id });
     portfolioService.removeProject(id);
     // Full-sync (savePortfolio) only upserts — it never removes rows, so the
     // deleted project must be dropped from Supabase explicitly or it reappears

@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '../../contexts/useApp';
+import { useAuth } from '../../contexts/useAuth';
+import { ActivityService } from '../../services/ActivityService';
 import Tag from '../common/Tag';
 import { Pencil, ScrollText, Plus, Trash2 } from 'lucide-react';
 import { SupabaseDataService } from '../../services/SupabaseDataService';
@@ -18,6 +20,7 @@ const STATUS_VARIANT = {
 
 export default function ContractsPage() {
   const { portfolioService, refreshPortfolio, setSelectedProjectId, setPage, setPendingTab } = useApp();
+  const { profile } = useAuth();
   const [selId, setSelId]           = useState(null);
   const [mode, setMode]             = useState('view');   // view | add | edit
   const [confirmDel, setConfirmDel] = useState(false);
@@ -43,6 +46,7 @@ export default function ContractsPage() {
   const handleAdd = (draft) => {
     const { name, ...contractSummary } = draft;
     const created = portfolioService.addExternalContract({ name, contractSummary });
+    ActivityService.log(profile, 'إضافة عقد خارجي', { entityType: 'contract', entityName: name, projectId: created.id });
     refreshPortfolio();
     setSelId(created.id);
     setMode('view');
@@ -51,12 +55,14 @@ export default function ContractsPage() {
   const handleEdit = (draft) => {
     const { name, ...contractSummary } = draft;
     portfolioService.updateProject(selected.id, { name, contractSummary });
+    ActivityService.log(profile, 'تعديل عقد خارجي', { entityType: 'contract', entityName: name, projectId: selected.id });
     refreshPortfolio();
     setMode('view');
   };
 
   const handleDelete = () => {
     const id = selected.id;
+    ActivityService.log(profile, 'حذف عقد خارجي', { entityType: 'contract', entityName: selected.name, projectId: id });
     portfolioService.removeProject(id);
     SupabaseDataService.deleteProject(id);   // المزامنة upsert فقط — نحذف الصف صراحةً
     refreshPortfolio();
