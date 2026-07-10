@@ -58,8 +58,10 @@ export default function Sidebar({ drawerOpen = false, onNavigate }) {
           />
           <div>
             <div style={{ fontWeight: 900, color: 'var(--text-hi)', fontSize: 17, letterSpacing: '-0.2px', lineHeight: 1.1 }}>رصف للاستثمار</div>
-            <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 500, marginTop: 3 }}>{t('sbSub')}</div>
-            <div style={{ fontSize: 9, color: 'var(--text-faint)', fontWeight: 500, marginTop: 2, letterSpacing: '0.3px' }}>الإصدار {APP_VERSION}</div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 500, marginTop: 3 }}>
+              {t('sbSub')}
+              <span style={{ color: 'var(--text-faint)', marginInlineStart: 5 }}>· v{APP_VERSION}</span>
+            </div>
           </div>
         </div>
       </div>
