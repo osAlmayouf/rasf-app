@@ -49,7 +49,7 @@ export default function ActivityLogPage() {
 
   const q = query.trim();
   const filtered = q
-    ? rows.filter(r => `${r.performed_by} ${r.action} ${r.entity_name ?? ''}`.includes(q))
+    ? rows.filter(r => `${r.performed_by} ${r.action} ${r.entity_name ?? ''} ${r.details ?? ''}`.includes(q))
     : rows;
 
   return (
@@ -103,11 +103,16 @@ export default function ActivityLogPage() {
                 return (
                   <tr key={r.id} style={{ borderTop: '1px solid var(--border-faint)' }}>
                     <td className="px-5 py-3">
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'flex-start', gap: 8 }}>
                         <span style={{ width: 26, height: 26, borderRadius: 7, flexShrink: 0, background: 'var(--bg-card-strong)', border: '1px solid var(--border)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: meta.color }}>
                           <Icon size={14} />
                         </span>
-                        <span style={{ fontWeight: 600, color: 'var(--text-hi)' }}>{r.action}</span>
+                        <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <span style={{ fontWeight: 600, color: 'var(--text-hi)' }}>{r.action}</span>
+                          {r.details && (
+                            <span style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.4 }}>{r.details}</span>
+                          )}
+                        </span>
                       </span>
                     </td>
                     <td className="px-5 py-3" style={{ color: 'var(--text-lo)' }}>{r.entity_name ?? '—'}</td>

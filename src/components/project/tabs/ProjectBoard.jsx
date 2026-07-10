@@ -115,6 +115,10 @@ export default function ProjectBoard({ project }) {
     }
   }, [project.id]); // eslint-disable-line
 
+  // وصف حالة البوابة بالعربي (منجز / جارٍ / لم يبدأ)
+  const gateLabel = (s) =>
+    t(s === PHASE_STATUS.DONE ? 'gateDone' : s === PHASE_STATUS.ACTIVE ? 'gateActive' : 'gatePending');
+
   const handleStatusChange = (key, status) => {
     setPhaseStatuses(prev => ({ ...prev, [key]: status }));
     setDirty(true);
@@ -123,8 +127,21 @@ export default function ProjectBoard({ project }) {
   const handleSave = () => {
     const updatedPhases = project.phases.map(p => ({ ...p, status: phaseStatuses[p.key] ?? phaseStatusOf(p) }));
     const newProgress   = progressFromPhases(updatedPhases);
+    // نلتقط البنود المتغيّرة فقط: "التصميم: جارٍ ← منجز"
+    const changes = project.phases
+      .map((p, i) => {
+        const from = phaseStatusOf(p);
+        const to   = phaseStatuses[p.key] ?? from;
+        return from === to ? null : `${t(PHASE_KEYS[i])}: ${gateLabel(from)} ← ${gateLabel(to)}`;
+      })
+      .filter(Boolean);
     portfolioService.updateProject(project.id, { phases: updatedPhases, progress: newProgress });
-    ActivityService.log(profile, 'تحديث مراحل المشروع', { entityType: 'status', entityName: project.name, projectId: project.id, details: `نسبة الإنجاز ${newProgress}%` });
+    if (changes.length) {
+      ActivityService.log(profile, 'تحديث مراحل المشروع', {
+        entityType: 'status', entityName: project.name, projectId: project.id,
+        details: `${changes.join(' · ')} (الإنجاز ${newProgress}%)`,
+      });
+    }
     refreshPortfolio();
     setDirty(false);
   };
@@ -135,9 +152,22 @@ export default function ProjectBoard({ project }) {
   };
 
   const handleStudySave = () => {
+    const prevStudy = Object.fromEntries(resolveStudyPhases(project).map(p => [p.key, phaseStatusOf(p)]));
     const updatedPhases = STUDY_PHASE_KEYS.map(key => ({ key, status: studyStatuses[key] ?? PHASE_STATUS.PENDING }));
+    const changes = STUDY_PHASE_KEYS
+      .map(key => {
+        const from = prevStudy[key] ?? PHASE_STATUS.PENDING;
+        const to   = studyStatuses[key] ?? PHASE_STATUS.PENDING;
+        return from === to ? null : `${t(key)}: ${gateLabel(from)} ← ${gateLabel(to)}`;
+      })
+      .filter(Boolean);
     portfolioService.updateProject(project.id, { phases: updatedPhases });
-    ActivityService.log(profile, 'تحديث مراحل الدراسة', { entityType: 'status', entityName: project.name, projectId: project.id });
+    if (changes.length) {
+      ActivityService.log(profile, 'تحديث مراحل الدراسة', {
+        entityType: 'status', entityName: project.name, projectId: project.id,
+        details: changes.join(' · '),
+      });
+    }
     refreshPortfolio();
     setStudyDirty(false);
   };
