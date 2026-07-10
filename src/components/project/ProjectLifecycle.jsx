@@ -1,5 +1,7 @@
 import { Fragment, useState } from 'react';
 import { useApp } from '../../contexts/useApp';
+import { useAuth } from '../../contexts/useAuth';
+import { ActivityService } from '../../services/ActivityService';
 import { ProjectStatus } from '../../models/Project';
 import GlassCard from '../common/GlassCard';
 import { Check, X, Circle } from 'lucide-react';
@@ -32,6 +34,7 @@ function initialCompleted(project, projectId, status) {
 // خط سير المشروع
 export default function ProjectLifecycle({ projectId, status }) {
   const { t, portfolioService, refreshPortfolio } = useApp();
+  const { profile } = useAuth();
 
   const isPipeline  = status === 'pipeline' || status === ProjectStatus.PIPELINE;
   const PHASE_KEYS  = isPipeline ? STUDY_PHASES : ACTIVE_PHASES;
@@ -55,11 +58,24 @@ export default function ProjectLifecycle({ projectId, status }) {
   };
 
   const handleConfirm = (i) => {
-    const next = phaseState(i) === 'active' ? i + 1 : i;
+    const wasActive = phaseState(i) === 'active';
+    const next = wasActive ? i + 1 : i;
     setCompleted(next);
     setPendingIdx(null);
     // Persist progress on the project itself → syncs to Supabase via refreshPortfolio
     portfolioService.updateProject(projectId, { lifecycleCompleted: next });
+
+    // سجل العمليات: اكتمال مرحلة أو التراجع عنها في خط السير
+    const phaseLabel   = isPipeline ? t(PHASE_KEYS[i]) : t(`${PHASE_KEYS[i]}n`);
+    const currentLabel = next < TOTAL ? (isPipeline ? t(PHASE_KEYS[next]) : t(`${PHASE_KEYS[next]}n`)) : null;
+    ActivityService.log(
+      profile,
+      wasActive ? `اكتمال مرحلة: ${phaseLabel}` : `تراجع عن مرحلة: ${phaseLabel}`,
+      {
+        entityType: 'status', entityName: project?.name, projectId,
+        details: `خط سير المشروع${currentLabel ? ` — المرحلة الحالية: ${currentLabel}` : ' — مكتمل'}`,
+      },
+    );
     refreshPortfolio();
   };
 
