@@ -1,5 +1,7 @@
 ﻿import { useState, useEffect } from 'react';
 import { useApp } from '../../../contexts/useApp';
+import { useAuth } from '../../../contexts/useAuth';
+import { ActivityService } from '../../../services/ActivityService';
 import GlassCard from '../../common/GlassCard';
 import ProjectNotes from './ProjectNotes';
 import { Ruler, BarChart2, Building2, SquareParking, Home, Check } from 'lucide-react';
@@ -86,6 +88,7 @@ function PhaseRow({ index, isLast, labelKey, weight, status, onChange, t }) {
 
 export default function ProjectBoard({ project }) {
   const { t, lang, portfolioService, refreshPortfolio } = useApp();
+  const { profile } = useAuth();
 
   const isAr       = lang === 'ar';
   const isPipeline = project.status === 'pipeline';
@@ -121,6 +124,7 @@ export default function ProjectBoard({ project }) {
     const updatedPhases = project.phases.map(p => ({ ...p, status: phaseStatuses[p.key] ?? phaseStatusOf(p) }));
     const newProgress   = progressFromPhases(updatedPhases);
     portfolioService.updateProject(project.id, { phases: updatedPhases, progress: newProgress });
+    ActivityService.log(profile, 'تحديث مراحل المشروع', { entityType: 'status', entityName: project.name, projectId: project.id, details: `نسبة الإنجاز ${newProgress}%` });
     refreshPortfolio();
     setDirty(false);
   };
@@ -133,6 +137,7 @@ export default function ProjectBoard({ project }) {
   const handleStudySave = () => {
     const updatedPhases = STUDY_PHASE_KEYS.map(key => ({ key, status: studyStatuses[key] ?? PHASE_STATUS.PENDING }));
     portfolioService.updateProject(project.id, { phases: updatedPhases });
+    ActivityService.log(profile, 'تحديث مراحل الدراسة', { entityType: 'status', entityName: project.name, projectId: project.id });
     refreshPortfolio();
     setStudyDirty(false);
   };
