@@ -25,7 +25,6 @@ const SECTORS = [
       { key: 'project',   labelKey: 'nProj',     page: 'project'   },
       { key: 'map',       labelKey: 'nMap',      page: 'map'       },
       { key: 'contracts', labelKey: 'nContracts', page: 'contracts' },
-      { key: 'activity',  labelKey: 'nActivity', page: 'activity', managerOnly: true },
       { key: 'files',     labelKey: 'nFiles',    page: 'files'     },
     ],
   },
@@ -98,17 +97,29 @@ export default function Sidebar({ drawerOpen = false, onNavigate }) {
         )}
       </nav>
 
-      {/* Admin panel link */}
-      {isAdmin && (
-        <div className="px-3 mb-1">
+      {/* Management links (bottom) — سجل العمليات + إدارة المستخدمين */}
+      {isDepAdmin && (
+        <div className="px-3 mb-1" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <div
-            className={`nav-item ${activeNavKey === 'admin' ? 'active' : ''}`}
-            onClick={() => go('admin')}
+            className={`nav-item ${activeNavKey === 'activity' ? 'active' : ''}`}
+            onClick={() => go('activity')}
             style={{ cursor: 'pointer' }}
           >
-            <div className="nav-dot" />
-            <span style={{ fontSize: 12 }}>إدارة المستخدمين</span>
+            <span style={{ color: activeNavKey === 'activity' ? 'var(--rasf-primary)' : 'var(--text-faint)', display: 'flex', alignItems: 'center' }}>
+              {NAV_ICONS.activity}
+            </span>
+            <span style={{ fontSize: 12 }}>{t('nActivity')}</span>
           </div>
+          {isAdmin && (
+            <div
+              className={`nav-item ${activeNavKey === 'admin' ? 'active' : ''}`}
+              onClick={() => go('admin')}
+              style={{ cursor: 'pointer' }}
+            >
+              <div className="nav-dot" />
+              <span style={{ fontSize: 12 }}>إدارة المستخدمين</span>
+            </div>
+          )}
         </div>
       )}
 
