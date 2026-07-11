@@ -5,7 +5,8 @@ import { addUnit } from '../../utils/fmtMode';
 import GlassCard from '../common/GlassCard';
 import Tag from '../common/Tag';
 import SARNum from '../common/SARNum';
-import { Search, Archive, ArrowUp, ArrowUpDown, ChevronDown, ChevronRight, MessageSquare } from 'lucide-react';
+import SortDropdown from '../common/SortDropdown';
+import { Search, Archive, ArrowUp, ChevronDown, ChevronRight, MessageSquare } from 'lucide-react';
 
 function fmtDate(iso, lang) {
   const d = new Date(iso);
@@ -40,29 +41,6 @@ const SORT_OPTIONS = [
   { key: 'lastUpdated',     label: 'آخر تحديث'    },
   { key: 'investmentM',     label: 'حجم الاستثمار' },
 ];
-
-function SortToggle({ active, dir, label, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 5,
-        padding: '5px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600,
-        cursor: 'pointer', transition: 'all .15s', whiteSpace: 'nowrap',
-        background: active ? 'var(--rasf-primary-dim)' : 'transparent',
-        border: `1px solid ${active ? 'var(--rasf-primary)' : 'var(--border-mid)'}`,
-        color: active ? 'var(--rasf-primary)' : 'var(--text-muted)',
-      }}
-    >
-      {label}
-      <span style={{ fontSize: 9, opacity: active ? 1 : 0.4 }}>
-        {active
-        ? <ArrowUp size={10} style={{ transform: dir === 'desc' ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} />
-        : <ArrowUpDown size={10} style={{ opacity: 0.4 }} />}
-      </span>
-    </button>
-  );
-}
 
 export default function PipelinePage() {
   const { t, lang, portfolioService, notesService, refreshPortfolio, setPage, setSelectedProjectId, setOuterProjectTab, displayMode } = useApp();
@@ -212,17 +190,7 @@ export default function PipelinePage() {
               <div className="section-hd">{t('ptPipeline')}</div>
               <div className="section-sub">{t('pipelineSubtitle') || 'المشاريع قيد الدراسة والتقييم'}</div>
             </div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {SORT_OPTIONS.map(opt => (
-                <SortToggle
-                  key={opt.key}
-                  label={opt.label}
-                  active={sortKey === opt.key}
-                  dir={sortDir}
-                  onClick={() => handleSort(opt.key)}
-                />
-              ))}
-            </div>
+            <SortDropdown options={SORT_OPTIONS} sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
           </div>
 
           <div className="overflow-x-auto">

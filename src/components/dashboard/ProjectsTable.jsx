@@ -3,6 +3,7 @@ import { useApp } from '../../contexts/useApp';
 import { fmtPct, fmtMonthYear } from '../../utils/fmt';
 import Tag from '../common/Tag';
 import ProgressBar from '../common/ProgressBar';
+import SortDropdown from '../common/SortDropdown';
 
 const TYPE_LABEL_MAP = {
   residential: 'typeRes', commercial: 'typeCom', industrial: 'typeInd', infrastructure: 'typeInfra',
@@ -38,28 +39,6 @@ const SORT_OPTIONS = [
   { key: 'lastUpdated',     label: 'آخر تحديث'    },
   { key: 'progress',        label: 'نسبة الإنجاز'  },
 ];
-
-function SortToggle({ active, dir, label, onClick }) {
-  const isActive = active;
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 5,
-        padding: '5px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600,
-        cursor: 'pointer', transition: 'all .15s', whiteSpace: 'nowrap',
-        background: isActive ? 'var(--rasf-primary-dim)' : 'transparent',
-        border: `1px solid ${isActive ? 'var(--rasf-primary)' : 'var(--border-mid)'}`,
-        color: isActive ? 'var(--rasf-primary)' : 'var(--text-muted)',
-      }}
-    >
-      {label}
-      <span style={{ fontSize: 9, opacity: isActive ? 1 : 0.4 }}>
-        {isActive ? (dir === 'asc' ? '↑' : '↓') : '↕'}
-      </span>
-    </button>
-  );
-}
 
 export default function ProjectsTable({ extraProjects = [] }) {
   const { t, setPage, setSelectedProjectId, setOuterProjectTab, portfolioService } = useApp();
@@ -100,17 +79,7 @@ export default function ProjectsTable({ extraProjects = [] }) {
           <div className="section-hd">{t('dTblT')}</div>
           <div className="section-sub">{t('dTblS')}</div>
         </div>
-        <div style={{ display: 'flex', gap: 6 }}>
-          {SORT_OPTIONS.map(opt => (
-            <SortToggle
-              key={opt.key}
-              label={opt.label}
-              active={sortKey === opt.key}
-              dir={sortDir}
-              onClick={() => handleSort(opt.key)}
-            />
-          ))}
-        </div>
+        <SortDropdown options={SORT_OPTIONS} sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
       </div>
 
       {/* Table */}
