@@ -468,6 +468,33 @@ input[type=file] { display: none; }
 
   /* Wide tables scroll horizontally rather than overflowing the page */
   .app-content table { min-width: max-content; }
+
+  /* Project selector cards → two per row (override inline min-width: 180) */
+  .proj-selector-card {
+    flex: 1 1 calc(50% - 6px) !important;
+    min-width: 0 !important;
+  }
+
+  /* Project lifecycle → uniform fixed-width cards that scroll horizontally,
+     so all stages stay the same size instead of squeezing into ~65px each */
+  .lifecycle-track {
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    padding-bottom: 4px;
+  }
+  .lifecycle-track .lifecycle-step {
+    flex: 0 0 auto !important;
+    width: 118px;
+    scroll-snap-align: start;
+  }
+  .lifecycle-track .lifecycle-arrow { flex: 0 0 auto; }
+
+  /* Project phases board → status buttons always sit below the phase name,
+     so every row is aligned the same way regardless of name length */
+  .phase-row-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 @keyframes rasf-fade-in { from { opacity: 0; } to { opacity: 1; } }

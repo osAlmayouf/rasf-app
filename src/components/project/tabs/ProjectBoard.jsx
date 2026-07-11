@@ -70,7 +70,7 @@ function PhaseRow({ index, isLast, labelKey, weight, status, onChange, t }) {
         )}
       </div>
       <div className={`flex-1 ${isLast ? 'pb-0' : 'pb-4'}`}>
-        <div className="flex justify-between items-center gap-2 flex-wrap">
+        <div className="phase-row-head flex justify-between items-center gap-2 flex-wrap">
           <span className="text-sm font-semibold" style={{ color: s.label }}>
             {t(labelKey)}
             {weight != null && (

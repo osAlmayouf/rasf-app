@@ -88,7 +88,7 @@ export default function ProjectLifecycle({ projectId, status }) {
         </div>
       </div>
 
-      <div className="flex items-stretch" style={{ gap: 6 }}>
+      <div className="lifecycle-track flex items-stretch" style={{ gap: 6 }}>
         {PHASE_KEYS.map((ph, i) => {
           const s         = phaseState(i);
           const isDone    = s === 'done';

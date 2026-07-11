@@ -248,7 +248,7 @@ export default function ProjectDetail() {
       {/* Project Selector */}
       <div className="glass rounded-2xl p-4 mb-6">
         <div className="text-xs mb-3 font-medium" style={{ color: 'var(--text-muted)' }}>{selectorLabel}</div>
-        <div className="flex gap-3 flex-wrap">
+        <div className="proj-selector flex gap-3 flex-wrap">
           {selectorProjects.map(p => {
             const isConfirming = confirmDeleteId === p.id;
             const isSelected   = selectedProjectId === p.id;
@@ -257,7 +257,7 @@ export default function ProjectDetail() {
               return (
                 <div
                   key={p.id}
-                  className="glass rounded-xl px-4 py-3"
+                  className="proj-selector-card glass rounded-xl px-4 py-3"
                   style={{ border: '1px solid #ef4444', minWidth: 180, background: 'var(--bg-card)' }}
                 >
                   <div className="text-sm font-bold mb-1" style={{ color: 'var(--text-hi)' }}>{p.name}</div>
@@ -285,7 +285,7 @@ export default function ProjectDetail() {
             return (
               <div
                 key={p.id}
-                className="glass rounded-xl px-4 py-3 relative"
+                className="proj-selector-card glass rounded-xl px-4 py-3 relative"
                 style={{
                   border: isSelected ? '1px solid var(--rasf-primary)' : '1px solid var(--border)',
                   minWidth: 180,
