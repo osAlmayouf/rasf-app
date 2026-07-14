@@ -4,7 +4,8 @@ import { useApp } from '../../contexts/useApp';
 import { useAuth } from '../../contexts/useAuth';
 import ReportSheet from '../report/ReportSheet';
 import DisplayModeToggle from '../common/DisplayModeToggle';
-import { Globe, Loader2, FileDown, Menu, SlidersHorizontal } from 'lucide-react';
+import { Globe, Loader2, FileDown, Menu, SlidersHorizontal, KeyRound } from 'lucide-react';
+import ChangePasswordModal from '../common/ChangePasswordModal';
 
 const PAGE_TITLE_KEY = { dashboard: 'ptDash', files: 'ptFiles', pipeline: 'ptPipeline', 'pipeline-dashboard': 'ptPipelineDash' };
 
@@ -19,10 +20,11 @@ function formatUpdateDate(lang) {
 
 export default function TopBar({ onMenuToggle }) {
   const { t, lang, toggleLang, theme, toggleTheme, currentPage, portfolioService, selectedProjectId } = useApp();
-  const { isAdmin } = useAuth();
-  const [exporting,  setExporting]  = useState(false);
-  const [capturing,  setCapturing]  = useState(false);
-  const [actionsOpen, setActionsOpen] = useState(false); // compact-mode settings dropdown
+  const { isAdmin, profile } = useAuth();
+  const [exporting,    setExporting]    = useState(false);
+  const [capturing,    setCapturing]    = useState(false);
+  const [actionsOpen,  setActionsOpen]  = useState(false);
+  const [showChangePw, setShowChangePw] = useState(false);
   const actionsRef = useRef(null);
 
   // Close the compact settings dropdown when clicking outside it
@@ -143,6 +145,22 @@ export default function TopBar({ onMenuToggle }) {
             </span>
           </button>
 
+          {/* Change password — for any logged-in user */}
+          <button
+            onClick={() => setShowChangePw(true)}
+            title={lang === 'ar' ? 'تغيير كلمة المرور' : 'Change password'}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              background: 'var(--bg-btn)', border: '1px solid var(--border-soft)',
+              color: 'var(--text-muted)', borderRadius: 8, padding: '7px 12px',
+              fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all .18s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--rasf-primary)'; e.currentTarget.style.color = 'var(--rasf-primary)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-soft)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+          >
+            <KeyRound size={13} />
+          </button>
+
           {/* Export — للأدمن فقط (الميزة غير مكتملة) */}
           {isAdmin && (
           <button
@@ -176,6 +194,13 @@ export default function TopBar({ onMenuToggle }) {
       </div>
 
       {/* Portal: loading overlay (screen only) + report sheet (print only) */}
+      {showChangePw && (
+        <ChangePasswordModal
+          targetUser={profile}
+          onClose={() => setShowChangePw(false)}
+        />
+      )}
+
       {capturing && createPortal(
         <>
           {/* Loading overlay — hidden when printing via CSS */}

@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/useAuth';
 import { useApp }  from '../../contexts/useApp';
 import GlassCard from '../common/GlassCard';
 import CreateUserModal from './CreateUserModal';
+import ChangePasswordModal from '../common/ChangePasswordModal';
 
 const SECTOR_LABEL = {
   dev:        'تطوير الأعمال',
@@ -12,14 +13,15 @@ const SECTOR_LABEL = {
   corporate:  'الشؤون المؤسسية',
 };
 
-const ROLE_LABEL = { admin: 'مدير النظام', user: 'مستخدم' };
+const ROLE_LABEL = { super_admin: 'مدير عام', admin: 'مدير النظام', dep_admin: 'مدير القسم', user: 'مستخدم' };
 
 export default function AdminPanel() {
-  const { listUsers, updateUserProfile, profile: myProfile } = useAuth();
+  const { listUsers, updateUserProfile, profile: myProfile, isSuperAdmin } = useAuth();
   const { restoreSeedProjects } = useApp();
   const [users,        setUsers]        = useState([]);
   const [loading,      setLoading]      = useState(true);
   const [showCreate,   setShowCreate]   = useState(false);
+  const [changePwUser, setChangePwUser] = useState(null);
   const [restoring,    setRestoring]    = useState(false);
   const [restoreDone,  setRestoreDone]  = useState(false);
 
@@ -162,19 +164,34 @@ export default function AdminPanel() {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    {u.id !== myProfile?.id && (
-                      <button
-                        onClick={() => toggleActive(u)}
-                        style={{
-                          fontSize: 11, padding: '4px 10px', borderRadius: 7,
-                          background: 'var(--bg-app)', border: '1px solid var(--border)',
-                          color: u.is_active ? '#ef4444' : '#10b981',
-                          cursor: 'pointer', fontWeight: 600,
-                        }}
-                      >
-                        {u.is_active ? 'إيقاف' : 'تفعيل'}
-                      </button>
-                    )}
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      {u.id !== myProfile?.id && (
+                        <button
+                          onClick={() => toggleActive(u)}
+                          style={{
+                            fontSize: 11, padding: '4px 10px', borderRadius: 7,
+                            background: 'var(--bg-app)', border: '1px solid var(--border)',
+                            color: u.is_active ? '#ef4444' : '#10b981',
+                            cursor: 'pointer', fontWeight: 600,
+                          }}
+                        >
+                          {u.is_active ? 'إيقاف' : 'تفعيل'}
+                        </button>
+                      )}
+                      {/* super_admin can change anyone; admin can change non-admins + own */}
+                      {(isSuperAdmin || u.role !== 'admin' || u.id === myProfile?.id) && (
+                        <button
+                          onClick={() => setChangePwUser(u)}
+                          style={{
+                            fontSize: 11, padding: '4px 10px', borderRadius: 7,
+                            background: 'var(--bg-app)', border: '1px solid var(--border)',
+                            color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 600,
+                          }}
+                        >
+                          🔑 كلمة المرور
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -187,6 +204,13 @@ export default function AdminPanel() {
         <CreateUserModal
           onClose={() => setShowCreate(false)}
           onCreated={loadUsers}
+        />
+      )}
+
+      {changePwUser && (
+        <ChangePasswordModal
+          targetUser={changePwUser}
+          onClose={() => setChangePwUser(null)}
         />
       )}
     </div>

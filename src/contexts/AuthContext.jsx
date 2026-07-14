@@ -68,6 +68,39 @@ export function AuthProvider({ children }) {
     return json;
   }, []);
 
+  // ── Change own password ───────────────────────────────────────────
+  const changeOwnPassword = useCallback(async (newPassword) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw error;
+    // Update bcrypt hash in profile too
+    const { data: { session: s } } = await supabase.auth.getSession();
+    if (s?.user?.id) {
+      const bcrypt = await import('bcryptjs');
+      const hash = bcrypt.hashSync(newPassword, 12);
+      await supabase.from('user_profiles').update({ password: hash, updated_at: new Date().toISOString() }).eq('id', s.user.id);
+    }
+  }, []);
+
+  // ── Admin change another user's password via Edge Function ────────
+  const adminChangeUserPassword = useCallback(async (userId, newPassword) => {
+    const { data: { session: s } } = await supabase.auth.getSession();
+    const res = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-update-user-password`,
+      {
+        method:  'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': `Bearer ${s.access_token}`,
+          'apikey':        import.meta.env.VITE_SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ userId, newPassword }),
+      }
+    );
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error ?? 'Failed to update password');
+    return json;
+  }, []);
+
   // ── Update user profile (admin only) ──────────────────────────────
   const updateUserProfile = useCallback(async (userId, updates) => {
     const { error } = await supabase
@@ -87,15 +120,17 @@ export function AuthProvider({ children }) {
     return data ?? [];
   }, []);
 
-  const isAdmin    = profile?.role === 'admin';
-  const isDepAdmin = profile?.role === 'admin' || profile?.role === 'dep_admin';
+  const isSuperAdmin = profile?.role === 'super_admin';
+  const isAdmin      = profile?.role === 'admin' || isSuperAdmin;
+  const isDepAdmin   = isAdmin || profile?.role === 'dep_admin';
   const loading    = session === undefined;
   const loggedIn   = !!session;
 
   return (
     <AuthContext.Provider value={{
-      session, profile, loading, loggedIn, isAdmin, isDepAdmin,
+      session, profile, loading, loggedIn, isSuperAdmin, isAdmin, isDepAdmin,
       login, logout, createUser, updateUserProfile, listUsers,
+      changeOwnPassword, adminChangeUserPassword,
     }}>
       {children}
     </AuthContext.Provider>
