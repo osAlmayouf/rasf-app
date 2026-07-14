@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../../contexts/useAuth';
 import { ActivityService } from '../../services/ActivityService';
 import { FolderKanban, ArrowUpDown, ScrollText, FileText, Image, StickyNote, Activity, RefreshCw, Loader } from 'lucide-react';
 
@@ -23,7 +22,6 @@ const fmtDateTime = (iso) => {
 };
 
 export default function ActivityLogPage() {
-  const { isDepAdmin } = useAuth();
   const [rows, setRows]       = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery]     = useState('');
@@ -35,17 +33,6 @@ export default function ActivityLogPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
-
-  if (!isDepAdmin) {
-    return (
-      <div>
-        <div className="section-hd">سجل العمليات</div>
-        <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-faint)', fontSize: 13 }}>
-          هذه الصفحة متاحة للمدراء فقط.
-        </div>
-      </div>
-    );
-  }
 
   const q = query.trim();
   const filtered = q

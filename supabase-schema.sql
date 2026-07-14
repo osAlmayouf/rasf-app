@@ -209,10 +209,10 @@ CREATE POLICY "active users insert activity"
   ON activity_log FOR INSERT
   WITH CHECK (EXISTS (SELECT 1 FROM user_profiles WHERE id = auth.uid() AND is_active = true));
 
--- المدراء فقط يقرؤون السجل
-CREATE POLICY "managers read activity"
+-- جميع المستخدمين المسجّلين يقرؤون السجل
+CREATE POLICY "authenticated read activity"
   ON activity_log FOR SELECT
-  USING (is_dep_admin());
+  USING (auth.uid() IS NOT NULL);
 
 -- ── First admin ───────────────────────────────────────────────────────
 -- Run AFTER creating the admin user in Auth dashboard.

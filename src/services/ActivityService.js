@@ -12,7 +12,7 @@ export const ActivityService = {
    */
   async log(profile, action, { entityType = null, entityName = null, projectId = null, details = null } = {}) {
     try {
-      await supabase.from('activity_log').insert({
+      const { error } = await supabase.from('activity_log').insert({
         action,
         entity_type:  entityType,
         entity_name:  entityName,
@@ -21,6 +21,9 @@ export const ActivityService = {
         performed_by: profile?.full_name ?? 'غير معروف',
         user_id:      profile?.id ?? null,
       });
+      // مهم: supabase-js لا يرمي استثناءً عند رفض RLS — يعيد { error } فقط،
+      // فبدون هذا الفحص كان الإدخال يفشل بصمت والجدول يبقى فارغًا.
+      if (error) console.warn('[Activity] insert rejected', error.message, error);
     } catch (e) {
       console.warn('[Activity] log failed', e);
     }

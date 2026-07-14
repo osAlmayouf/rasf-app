@@ -96,31 +96,29 @@ export default function Sidebar({ drawerOpen = false, onNavigate }) {
         )}
       </nav>
 
-      {/* Management links (bottom) — سجل العمليات + إدارة المستخدمين */}
-      {isDepAdmin && (
-        <div className="px-3 mb-1" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {/* Management links (bottom) — سجل العمليات (للجميع) + إدارة المستخدمين (أدمن) */}
+      <div className="px-3 mb-1" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div
+          className={`nav-item ${activeNavKey === 'activity' ? 'active' : ''}`}
+          onClick={() => go('activity')}
+          style={{ cursor: 'pointer' }}
+        >
+          <span style={{ color: activeNavKey === 'activity' ? 'var(--rasf-primary)' : 'var(--text-faint)', display: 'flex', alignItems: 'center' }}>
+            {NAV_ICONS.activity}
+          </span>
+          <span style={{ fontSize: 12 }}>{t('nActivity')}</span>
+        </div>
+        {isAdmin && (
           <div
-            className={`nav-item ${activeNavKey === 'activity' ? 'active' : ''}`}
-            onClick={() => go('activity')}
+            className={`nav-item ${activeNavKey === 'admin' ? 'active' : ''}`}
+            onClick={() => go('admin')}
             style={{ cursor: 'pointer' }}
           >
-            <span style={{ color: activeNavKey === 'activity' ? 'var(--rasf-primary)' : 'var(--text-faint)', display: 'flex', alignItems: 'center' }}>
-              {NAV_ICONS.activity}
-            </span>
-            <span style={{ fontSize: 12 }}>{t('nActivity')}</span>
+            <div className="nav-dot" />
+            <span style={{ fontSize: 12 }}>إدارة المستخدمين</span>
           </div>
-          {isAdmin && (
-            <div
-              className={`nav-item ${activeNavKey === 'admin' ? 'active' : ''}`}
-              onClick={() => go('admin')}
-              style={{ cursor: 'pointer' }}
-            >
-              <div className="nav-dot" />
-              <span style={{ fontSize: 12 }}>إدارة المستخدمين</span>
-            </div>
-          )}
-        </div>
-      )}
+        )}
+      </div>
 
       {/* User */}
       <div className="px-3 mt-2 pt-3" style={{ borderTop: '1px solid var(--border-faint)' }}>
