@@ -43,3 +43,16 @@ export function progressFromPhases(phases) {
 export function defaultPhases() {
   return PHASE_KEYS.map(key => ({ key, status: PHASE_STATUS.PENDING }));
 }
+
+/**
+ * مفتاح ترجمة المرحلة الحالية (لوسم اللوحة/الأنابيب):
+ * أول بند "جارٍ"، وإلا أول بند "لم يبدأ"، وإلا null (كل البنود منجزة → مكتمل).
+ * @param keys مفاتيح الترجمة بالترتيب (PHASE_KEYS للقائمة، STUDY_PHASE_KEYS للدراسة)
+ */
+export function currentPhaseKey(phases, keys = PHASE_KEYS) {
+  if (!phases?.length) return keys[0];
+  const n = Math.min(phases.length, keys.length);
+  for (let i = 0; i < n; i++) if (phaseStatusOf(phases[i]) === PHASE_STATUS.ACTIVE)  return keys[i];
+  for (let i = 0; i < n; i++) if (phaseStatusOf(phases[i]) === PHASE_STATUS.PENDING) return keys[i];
+  return null; // كل البنود منجزة
+}

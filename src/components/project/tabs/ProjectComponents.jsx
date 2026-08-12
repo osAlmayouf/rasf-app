@@ -110,7 +110,7 @@ function ComponentCard({ type, data }) {
             {/* Areas */}
             <div style={{ borderTop: '1px solid var(--border-faint)', paddingTop: 8, marginTop: 4 }}>
               <Row label="إجمالي GBA" value={fmtArea(gba)} color="var(--text-hi)" />
-              <Row label="صافي NSA"    value={fmtArea(nsa)} color="var(--text-hi)" />
+              <Row label="المساحة البيعية"    value={fmtArea(nsa)} color="var(--text-hi)" />
             </div>
 
             {/* Cost */}
@@ -246,8 +246,8 @@ export default function ProjectComponents({ project }) {
           <div className="grid grid-cols-2 gap-3">
             {[
               { label: 'إجمالي الوحدات',    value: fmtNum(project.units),    icon: <Home size={16} /> },
-              { label: 'إجمالي مساحة البناء', value: totalGba > 0 ? fmtArea(totalGba) : (project.gbaArea || '—'), icon: <Building2 size={16} /> },
-              { label: 'صافي NSA',           value: totalNsa > 0 ? fmtArea(totalNsa) : (project.nsaArea || '—'), icon: <Tag size={16} /> },
+              { label: 'إجمالي المسطحات', value: totalGba > 0 ? fmtArea(totalGba) : (project.gbaArea || '—'), icon: <Building2 size={16} /> },
+              { label: 'المساحة البيعية',           value: totalNsa > 0 ? fmtArea(totalNsa) : (project.nsaArea || '—'), icon: <Tag size={16} /> },
               { label: 'مساحة اللاند سكيب', value: (project.landscapeArea && project.landscapeArea !== '—') ? project.landscapeArea : '—', icon: <TreePine size={16} /> },
             ].map((item, i) => (
               <div key={i} className="glass rounded-xl p-3">
@@ -300,7 +300,7 @@ export default function ProjectComponents({ project }) {
           {/* Basement area */}
           <StatTile
             icon={<Layers size={22} />}
-            label="مساحة القبو"
+            label="القبو"
             value={basementArea || project.belowGradeGBA || '—'}
             color="var(--text-muted)"
           />

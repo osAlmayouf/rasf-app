@@ -192,6 +192,11 @@ export default function ProjectBoard({ project }) {
     </button>
   );
 
+  // الإنجاز الكلي الموزون (حيّ) — يعكس حالة البوابات الحالية قبل الحفظ
+  const liveProgress = isPipeline
+    ? null
+    : progressFromPhases(project.phases.map(p => ({ ...p, status: phaseStatuses[p.key] ?? phaseStatusOf(p) })));
+
   return (
     <div>
       {/* KPI cards */}
@@ -213,10 +218,22 @@ export default function ProjectBoard({ project }) {
       <div className="grid gap-4" style={{ gridTemplateColumns: '3fr 1.4fr' }}>
         <GlassCard>
           <div className="flex items-center justify-between mb-4">
-            <div className="section-hd mb-0.5">
-              {isPipeline
-                ? (isAr ? 'مراحل الدراسة والتقييم' : 'Study & Evaluation Phases')
-                : t('bdTlT')}
+            <div>
+              <div className="section-hd mb-0.5">
+                {isPipeline
+                  ? (isAr ? 'مراحل الدراسة والتقييم' : 'Study & Evaluation Phases')
+                  : t('bdTlT')}
+              </div>
+              {!isPipeline && liveProgress != null && (
+                <div className="flex items-center gap-2 mt-1.5" style={{ maxWidth: 260 }}>
+                  <div style={{ flex: 1, height: 6, borderRadius: 4, background: 'var(--progress-track)', overflow: 'hidden' }}>
+                    <div style={{ width: `${liveProgress}%`, height: '100%', borderRadius: 4, background: 'var(--rasf-primary)', transition: 'width .25s' }} />
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--rasf-primary)', whiteSpace: 'nowrap' }}>
+                    {liveProgress}% {isAr ? 'إنجاز' : 'done'}
+                  </span>
+                </div>
+              )}
             </div>
             {isPipeline ? (studyDirty && saveBtn(handleStudySave)) : (dirty && saveBtn(handleSave))}
           </div>

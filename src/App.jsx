@@ -18,6 +18,7 @@ import CommercialPage   from './components/commercial/CommercialPage';
 import MapPage          from './components/map/MapPage';
 import ContractsPage    from './components/contracts/ContractsPage';
 import ActivityLogPage  from './components/activity/ActivityLogPage';
+import ChangelogPage    from './components/changelog/ChangelogPage';
 
 function PageRouter() {
   const { currentPage } = useApp();
@@ -28,6 +29,7 @@ function PageRouter() {
     case 'map':        return <MapPage />;
     case 'contracts':  return <ContractsPage />;
     case 'activity':   return <ActivityLogPage />;
+    case 'changelog':  return <ChangelogPage />;
     case 'pipeline':           return <PipelinePage />;
     case 'pipeline-dashboard': return <PipelineDashboard />;
     case 'admin':      return <AdminPanel />;

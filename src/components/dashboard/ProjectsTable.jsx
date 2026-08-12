@@ -4,35 +4,15 @@ import { fmtPct, fmtMonthYear } from '../../utils/fmt';
 import Tag from '../common/Tag';
 import ProgressBar from '../common/ProgressBar';
 import SortDropdown from '../common/SortDropdown';
+import { PHASE_KEYS, currentPhaseKey } from '../../utils/phaseProgress';
 
 const TYPE_LABEL_MAP = {
   residential: 'typeRes', commercial: 'typeCom', industrial: 'typeInd', infrastructure: 'typeInfra',
   luxury_residential: 'typeCom', mixed: 'typeCom', hotel: 'typeCom',
 };
 
-// أسماء مراحل خط سير المشروع (lc1n…lc5n)
-const LC_KEYS = ['lc1n', 'lc2n', 'lc3n', 'lc4n', 'lc5n'];
-
-// القيم الافتراضية بحسب الحالة (نفس منطق ProjectLifecycle)
-const STATUS_DEFAULT_COMPLETED = { planning: 1, financing: 2, active: 3, completed: 5 };
-
-// المرحلة الحالية من بيانات المشروع (المتزامنة مع Supabase)، مع رجوع لـ localStorage
-// القديم للترحيل، ثم الافتراضي بحسب الحالة — نفس منطق ProjectLifecycle.
-function getLifecyclePhaseKey(project) {
-  let completed = project?.lifecycleCompleted;
-  if (completed == null) {
-    try {
-      const stored = localStorage.getItem(`lifecycle_completed_${project.id}`);
-      if (stored !== null) completed = Number(stored);
-    } catch { /* ignore */ }
-  }
-  if (completed == null) completed = STATUS_DEFAULT_COMPLETED[project?.status] ?? 0;
-  if (completed >= 5) return 'lc5n';
-  return LC_KEYS[completed] ?? 'lc1n';
-}
-
-// لون المرحلة
-const LC_VARIANT = ['blue', 'blue', 'amber', 'green', 'purple'];
+// لون المرحلة الحالية بحسب ترتيب البند (ph1…ph5)
+const PHASE_VARIANT = ['blue', 'blue', 'amber', 'green', 'purple'];
 
 const SORT_OPTIONS = [
   { key: 'opportunityDate', label: 'تاريخ الفرصة' },
@@ -166,10 +146,11 @@ export default function ProjectsTable({ extraProjects = [] }) {
 
                 <td className="px-6 py-4">
                   {(() => {
-                    const phaseKey = getLifecyclePhaseKey(p);
-                    const phaseIdx = LC_KEYS.indexOf(phaseKey);
+                    const phaseKey = currentPhaseKey(p.phases, PHASE_KEYS);
+                    if (!phaseKey) return <Tag variant="green">{t('gateDone')}</Tag>;
+                    const phaseIdx = PHASE_KEYS.indexOf(phaseKey);
                     return (
-                      <Tag variant={LC_VARIANT[phaseIdx] ?? 'blue'}>
+                      <Tag variant={PHASE_VARIANT[phaseIdx] ?? 'blue'}>
                         {t(phaseKey)}
                       </Tag>
                     );

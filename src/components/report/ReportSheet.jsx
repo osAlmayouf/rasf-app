@@ -232,7 +232,7 @@ function OverviewPage({ portfolioService, lang, totalPages }) {
     { label: isAr ? 'متوسط ROI'              : 'Average ROI',            value: fmtPct(kpis.averageROI),      color: C.green  },
     { label: isAr ? 'متوسط IRR'              : 'Average IRR',            value: fmtPct(kpis.averageIRR),      color: C.purple },
     { label: isAr ? 'متوسط ROE السنوي'       : 'Avg Annual ROE',         value: fmtPct(kpis.averageROEAnnual),color: C.green  },
-    { label: isAr ? 'إجمالي مساحة البناء'    : 'Total Above-Grade GBA',  value: kpis.totalAboveGradeGBA,     sub: 'م²',       color: C.blue   },
+    { label: isAr ? 'مسطحات فوق الأرض'    : 'Total Above-Grade GBA',  value: kpis.totalAboveGradeGBA,     sub: 'م²',       color: C.blue   },
     { label: isAr ? 'عدد المشاريع'            : 'Active Projects',        value: kpis.projectCount,            color: C.hi     },
   ];
 
@@ -404,9 +404,9 @@ function ProjectPage({ project: p, lang, pageNum, totalPages }) {
 
   const areaRows = [
     { l: isAr ? 'مساحة الأرض'         : 'Land Area',       v: p.area },
-    { l: isAr ? 'مبني فوق الأرض GBA'  : 'Above Grade GBA', v: p.aboveGradeGBA },
+    { l: isAr ? 'مسطحات فوق الأرض'  : 'Above Grade GBA', v: p.aboveGradeGBA },
     ...(p.belowGradeGBA && p.belowGradeGBA !== '—'
-      ? [{ l: isAr ? 'مساحة القبو' : 'Below Grade', v: p.belowGradeGBA }]
+      ? [{ l: isAr ? 'القبو' : 'Below Grade', v: p.belowGradeGBA }]
       : []),
     { l: isAr ? 'إجمالي الوحدات' : 'Total Units', v: p.units?.toLocaleString() },
     ...(p.unitsSold > 0 ? [{ l: isAr ? 'الوحدات المباعة' : 'Units Sold', v: p.unitsSold?.toLocaleString() }] : []),

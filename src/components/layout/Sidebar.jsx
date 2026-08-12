@@ -1,7 +1,7 @@
 import { useApp }  from '../../contexts/useApp';
 import { useAuth } from '../../contexts/useAuth';
 import { APP_VERSION } from '../../appVersion';
-import { LogOut, LayoutDashboard, FolderKanban, Search, FolderOpen, MapPin, ScrollText, History } from 'lucide-react';
+import { LogOut, LayoutDashboard, FolderKanban, Search, FolderOpen, MapPin, ScrollText, History, Sparkles } from 'lucide-react';
 
 const NAV_ICONS = {
   dashboard:          <LayoutDashboard size={14} />,
@@ -11,6 +11,7 @@ const NAV_ICONS = {
   map:                <MapPin size={14} />,
   contracts:          <ScrollText size={14} />,
   activity:           <History size={14} />,
+  changelog:          <Sparkles size={14} />,
   files:              <FolderOpen size={14} />,
 };
 
@@ -96,8 +97,18 @@ export default function Sidebar({ drawerOpen = false, onNavigate }) {
         )}
       </nav>
 
-      {/* Management links (bottom) — سجل العمليات (للجميع) + إدارة المستخدمين (أدمن) */}
+      {/* Management links (bottom) — آخر التطورات + سجل العمليات (للجميع) + إدارة المستخدمين (أدمن) */}
       <div className="px-3 mb-1" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div
+          className={`nav-item ${activeNavKey === 'changelog' ? 'active' : ''}`}
+          onClick={() => go('changelog')}
+          style={{ cursor: 'pointer' }}
+        >
+          <span style={{ color: activeNavKey === 'changelog' ? 'var(--rasf-primary)' : 'var(--text-faint)', display: 'flex', alignItems: 'center' }}>
+            {NAV_ICONS.changelog}
+          </span>
+          <span style={{ fontSize: 12 }}>{t('nChangelog')}</span>
+        </div>
         <div
           className={`nav-item ${activeNavKey === 'activity' ? 'active' : ''}`}
           onClick={() => go('activity')}

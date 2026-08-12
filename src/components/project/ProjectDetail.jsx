@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useApp } from '../../contexts/useApp';
 import { useAuth } from '../../contexts/useAuth';
 import { ActivityService } from '../../services/ActivityService';
@@ -6,7 +7,7 @@ import { fmtPct, fmtMonthYear } from '../../utils/fmt';
 import { stripUnit } from '../../utils/fmtMode';
 import { parseLatLng, isShortMapLink } from '../../utils/geo';
 import Tag            from '../common/Tag';
-import { X, ArrowUp, Archive } from 'lucide-react';
+import { X, ArrowUp, Archive, FileDown } from 'lucide-react';
 import SARNum         from '../common/SARNum';
 import ProjectBoard   from './tabs/ProjectBoard';
 import ProjectScenarios  from './tabs/ProjectScenarios';
@@ -20,7 +21,7 @@ import Distributions     from './tabs/Distributions';
 import Revenue           from './tabs/Revenue';
 import CashFlows         from './tabs/CashFlows';
 import { SupabaseDataService } from '../../services/SupabaseDataService';
-import ProjectLifecycle  from './ProjectLifecycle';
+import ProjectReportSheet from '../report/ProjectReportSheet';
 
 const TABS = [
   { id: 'board',     labelKey: 'tbBoard',     Component: ProjectBoard       },
@@ -47,7 +48,7 @@ const STATUS_LABEL_MAP = { pipeline: 'statusPipeline', financing: 'statusFin', a
 const TYPE_LABEL_MAP   = { residential: 'typeRes', commercial: 'typeCom', industrial: 'typeInd', infrastructure: 'typeInfra', luxury_residential: 'typeCom', mixed: 'typeCom', hotel: 'typeCom' };
 
 export default function ProjectDetail() {
-  const { t, portfolioService, selectedProjectId, setSelectedProjectId, setPage, refreshPortfolio, pendingTab, setPendingTab, displayMode, outerProjectTab, setOuterProjectTab } = useApp();
+  const { t, lang, portfolioService, selectedProjectId, setSelectedProjectId, setPage, refreshPortfolio, pendingTab, setPendingTab, displayMode, outerProjectTab, setOuterProjectTab } = useApp();
   const { isAdmin, profile } = useAuth();
   const [activeTab, setActiveTab]             = useState('board');
   const outerTab    = outerProjectTab;
@@ -63,10 +64,21 @@ export default function ProjectDetail() {
   const [confirmAction, setConfirmAction]       = useState(null); // 'promote' | 'archive'
   const [editing, setEditing]                   = useState(false);
   const [editName, setEditName]               = useState('');
+  const [editCode, setEditCode]               = useState('');
   const [editLocation, setEditLocation]       = useState('');
   const [editType, setEditType]               = useState('');
   const [editOppDate, setEditOppDate]         = useState('');
   const [editMapUrl, setEditMapUrl]           = useState('');
+  const [exportingPdf, setExportingPdf]       = useState(false);
+
+  // تصدير تقرير المشروع كـ PDF عبر طباعة المتصفح (متجهي، يحافظ على الهوية)
+  useEffect(() => {
+    if (!exportingPdf) return;
+    const done = () => { window.removeEventListener('afterprint', done); setExportingPdf(false); };
+    const timer = setTimeout(() => { window.addEventListener('afterprint', done); window.print(); }, 300);
+    return () => clearTimeout(timer);
+  }, [exportingPdf]);
+
   const allProjects      = portfolioService.getAllProjects();
   const pipelineProjects = portfolioService.getPipelineProjects();
   const project = portfolioService.getProject(selectedProjectId ?? allProjects[0]?.id);
@@ -87,6 +99,7 @@ export default function ProjectDetail() {
 
   const startEdit = () => {
     setEditName(project.name);
+    setEditCode(project.projectCode ?? '');
     setEditLocation(project.location ?? '');
     setEditType(project.type ?? 'residential');
     setEditOppDate(project.opportunityDate ?? '');
@@ -98,6 +111,7 @@ export default function ProjectDetail() {
     if (editName.trim()) {
       const updates = {
         name: editName.trim(),
+        projectCode: editCode.trim() || null,
         location: editLocation.trim(),
         type: editType,
         opportunityDate: editOppDate || null,
@@ -346,6 +360,23 @@ export default function ProjectDetail() {
                 {t(TYPE_LABEL_MAP[project.type] ?? 'typeMix')}
               </Tag>
 
+              {/* تصدير تقرير المشروع PDF */}
+              <button
+                onClick={() => setExportingPdf(true)}
+                title="تصدير تقرير المشروع PDF"
+                style={{
+                  background: 'var(--rasf-primary-dim)', color: 'var(--rasf-primary)',
+                  border: '1px solid var(--border-tag-warm)', borderRadius: 7,
+                  padding: '4px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                  transition: 'all .15s', display: 'inline-flex', alignItems: 'center', gap: 5,
+                }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--rasf-primary)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-tag-warm)'}
+              >
+                <FileDown size={12} />
+                تصدير PDF
+              </button>
+
               {/* Pipeline-only actions */}
               {project.status === 'pipeline' && (
                 <>
@@ -410,6 +441,14 @@ export default function ProjectDetail() {
                   className="text-xl font-bold text-white rounded-lg px-3 py-1.5"
                   style={{ background: 'var(--bg-card-strong)', border: '1px solid var(--rasf-primary)', outline: 'none', minWidth: 220, color: 'var(--text-hi)' }}
                   autoFocus
+                />
+                <input
+                  value={editCode}
+                  onChange={e => setEditCode(e.target.value)}
+                  placeholder="كود المشروع (الكود الداخلي للإدارة)"
+                  className="text-sm rounded-lg px-3 py-1"
+                  style={{ background: 'var(--bg-card-strong)', border: '1px solid var(--border-soft)', outline: 'none', color: 'var(--rasf-primary)', fontWeight: 700, letterSpacing: '0.5px', minWidth: 200 }}
+                  dir="ltr"
                 />
                 <input
                   value={editLocation}
@@ -488,6 +527,18 @@ export default function ProjectDetail() {
               <div className="flex items-start gap-2">
                 <div>
                   <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--text-hi)' }}>{project.name}</h1>
+                  {project.projectCode && (
+                    <div style={{ marginBottom: 6 }}>
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        background: 'var(--rasf-primary-dim)', border: '1px solid var(--border-tag-warm)',
+                        borderRadius: 6, padding: '2px 9px', fontSize: 11, fontWeight: 700,
+                        color: 'var(--rasf-primary)', letterSpacing: '0.5px', direction: 'ltr',
+                      }}>
+                        <span style={{ opacity: 0.7, fontSize: 10 }}>كود:</span> {project.projectCode}
+                      </span>
+                    </div>
+                  )}
                   <div className="text-sm" style={{ color: 'var(--text-muted)' }}>{project.subtitle}</div>
                   {project.lastUpdated && (
                     <div className="flex items-center gap-1 mt-2" style={{ fontSize: 11, color: '#7A6E67' }}>
@@ -540,9 +591,6 @@ export default function ProjectDetail() {
         </div>
       </div>
 
-      {/* Lifecycle */}
-      <ProjectLifecycle projectId={project.id} status={project.status} />
-
       {/* Tabs */}
       <div className="flex overflow-x-auto mb-6" style={{ borderBottom: '1px solid var(--border)' }}>
         {visibleTabs.map(tab => (
@@ -560,6 +608,24 @@ export default function ProjectDetail() {
       {ActiveComponent && <ActiveComponent project={project} />}
       </>}
       </>
+
+      {/* PDF export — hidden on screen, shown only during window.print() */}
+      {exportingPdf && project && createPortal(
+        <>
+          <div id="rasf-print-overlay" style={{
+            position: 'fixed', inset: 0, zIndex: 10000,
+            background: 'rgba(9,13,26,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <span style={{ fontSize: 14, color: 'var(--rasf-primary)', fontWeight: 700 }}>
+              ⏳ جارٍ تجهيز تقرير المشروع PDF...
+            </span>
+          </div>
+          <div id="rasf-print-root">
+            <ProjectReportSheet project={project} lang={lang} />
+          </div>
+        </>,
+        document.body,
+      )}
     </div>
   );
 }

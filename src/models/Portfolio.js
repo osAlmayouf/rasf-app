@@ -103,7 +103,7 @@ export class Portfolio extends Entity {
     if (!project) return;
 
     const SIMPLE_FIELDS = [
-      'name', 'type', 'progress', 'phases', 'milestones', 'status',
+      'name', 'projectCode', 'type', 'progress', 'phases', 'milestones', 'status',
       'investmentM', 'totalInvestment', 'irr', 'roi', 'roeAnnual',
       'moic', 'paybackYears', 'deliveryDate', 'startDate', 'opportunityDate',
       'lat', 'lng', 'mapUrl', 'contractSummary',

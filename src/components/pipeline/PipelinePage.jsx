@@ -6,6 +6,7 @@ import GlassCard from '../common/GlassCard';
 import Tag from '../common/Tag';
 import SARNum from '../common/SARNum';
 import SortDropdown from '../common/SortDropdown';
+import { currentPhaseKey } from '../../utils/phaseProgress';
 import { Search, Archive, ArrowUp, ChevronDown, ChevronRight, MessageSquare } from 'lucide-react';
 
 function fmtDate(iso, lang) {
@@ -18,23 +19,8 @@ const TYPE_LABEL_MAP = {
   luxury_residential: 'typeCom', mixed: 'typeCom', hotel: 'typeCom',
 };
 
-// Study phases (mirrors ProjectLifecycle). The current phase is derived from the
-// lifecycle progress persisted per project, so the status reflects study advancement.
+// مراحل الدراسة — المرحلة الحالية تُشتق من بوابات المشروع (منجز/جارٍ/لم يبدأ)
 const STUDY_PHASE_KEYS = ['sp1', 'sp2', 'sp3', 'sp4'];
-function currentStudyPhaseKey(project) {
-  // Source of truth is project.lifecycleCompleted (synced with Supabase); fall
-  // back to a legacy localStorage value for projects not migrated yet.
-  let completed = project?.lifecycleCompleted;
-  if (completed == null) {
-    try {
-      const stored = localStorage.getItem(`lifecycle_completed_${project.id}`);
-      if (stored !== null) completed = Number(stored);
-    } catch { /* ignore */ }
-  }
-  completed = completed ?? 0;
-  const idx = Math.min(Math.max(completed, 0), STUDY_PHASE_KEYS.length - 1);
-  return STUDY_PHASE_KEYS[idx];
-}
 
 const SORT_OPTIONS = [
   { key: 'opportunityDate', label: 'تاريخ الفرصة' },
@@ -275,7 +261,10 @@ export default function PipelinePage() {
                     <td className="px-6 py-4" style={{ fontWeight: 600, color: 'var(--text-lo)', fontSize: 13 }}>{fmtPct(p.roeAnnual)}</td>
 
                     <td className="px-6 py-4">
-                      <Tag variant="blue">{t(currentStudyPhaseKey(p))}</Tag>
+                      {(() => {
+                        const k = currentPhaseKey(p.phases, STUDY_PHASE_KEYS);
+                        return <Tag variant={k ? 'blue' : 'green'}>{k ? t(k) : t('gateDone')}</Tag>;
+                      })()}
                     </td>
 
                     <td className="px-6 py-4">
